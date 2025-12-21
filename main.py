@@ -111,32 +111,50 @@ class SelfPlay:
 
         env_name = "neuron_poker-v0"
         num_of_plrs = 6
-        self.env = gym.make(env_name, initial_stacks=self.stack, render=self.render)
+        self.env = gym.make(
+            env_name,
+            initial_stacks=self.stack,
+            render=self.render,
+            funds_plot=self.funds_plot,  # Pass funds_plot to environment
+        )
         for _ in range(num_of_plrs):
             player = RandomPlayer()
             self.env.unwrapped.add_player(player)
 
         for episode in range(self.num_episodes):
             self.log.info(f"Starting episode {episode + 1}/{self.num_episodes}")
-            self.env.reset()
-            # The environment should run automatically through agent actions
-            # Track the winner if available
-            if hasattr(self.env, "winner_ix"):
-                self.winner_in_episodes.append(self.env.winner_ix)
+            obs, info = self.env.reset()
+            done = False
+            total_reward = 0
+
+            while not done:
+                # For random agents, the environment handles automatic play
+                # We just need to step through until the hand is done
+                action = None  # Will be handled by autoplay agents
+                obs, reward, done, info = self.env.step(action)
+                total_reward += reward
+
+            # Track the winner
+            if "winner" in info and info["winner"] is not None:
+                self.winner_in_episodes.append(info["winner"])
                 self.log.info(
-                    f"Episode {episode + 1} winner: Player {self.env.winner_ix}"
+                    f"Episode {episode + 1} winner: Player {info['winner']}, Reward: {total_reward}"
+                )
+            else:
+                self.log.info(
+                    f"Episode {episode + 1} completed, Reward: {total_reward}"
                 )
 
         if self.winner_in_episodes:
             league_table = pd.Series(self.winner_in_episodes).value_counts()
             best_player = league_table.index[0]
-            self.log.info("League Table")
+            self.log.info("League Table (Hand Wins)")
             self.log.info("============")
             self.log.info(league_table)
             self.log.info(f"Best Player: {best_player}")
 
     def key_press_agents(self):
-        """Create an environment with 6 key press agents"""
+        """Create an environment with key press agents"""
         from agents.agent_keypress import Player as KeyPressAgent
 
         env_name = "neuron_poker-v0"
@@ -146,7 +164,20 @@ class SelfPlay:
             player = KeyPressAgent()
             self.env.unwrapped.add_player(player)
 
-        self.env.reset()
+        # Episode loop
+        for episode in range(self.num_episodes):
+            self.log.info(f"Starting episode {episode + 1}/{self.num_episodes}")
+
+            # Store initial stacks before reset (which deducts blinds)
+            initial_stacks = [self.stack] * num_of_plrs
+
+            obs, info = self.env.reset()
+
+            # Game loop for this episode
+            done = False
+            while not done:
+                obs, reward, terminated, truncated, info = self.env.step(None)
+                done = terminated or truncated
 
     def equity_vs_random(self):
         """Create 6 players, 4 of them equity based, 2 of them random"""
@@ -170,9 +201,22 @@ class SelfPlay:
         self.env.unwrapped.add_player(RandomPlayer())
         self.env.unwrapped.add_player(RandomPlayer())
 
-        for _ in range(self.num_episodes):
-            self.env.reset()
-            self.winner_in_episodes.append(self.env.winner_ix)
+        for episode in range(self.num_episodes):
+            self.log.info(f"Starting episode {episode + 1}/{self.num_episodes}")
+            obs, info = self.env.reset()
+            done = False
+            total_reward = 0
+
+            while not done:
+                action = None
+                obs, reward, done, info = self.env.step(action)
+                total_reward += reward
+
+            if "winner" in info and info["winner"] is not None:
+                self.winner_in_episodes.append(info["winner"])
+                self.log.info(
+                    f"Episode {episode + 1} winner: Player {info['winner']}, Reward: {total_reward}"
+                )
 
         league_table = pd.Series(self.winner_in_episodes).value_counts()
         best_player = league_table.index[0]
@@ -202,8 +246,14 @@ class SelfPlay:
                 )
 
             for _ in range(self.num_episodes):
-                self.env.reset()
-                self.winner_in_episodes.append(self.env.winner_ix)
+                obs, info = self.env.reset()
+                done = False
+                while not done:
+                    action = None
+                    obs, reward, done, info = self.env.step(action)
+
+                if "winner" in info and info["winner"] is not None:
+                    self.winner_in_episodes.append(info["winner"])
 
             league_table = pd.Series(self.winner_in_episodes).value_counts()
             best_player = int(league_table.index[0])
@@ -304,8 +354,14 @@ class SelfPlay:
         self.env.unwrapped.add_player(Custom_Q1(name="Deep_Q1"))
 
         for _ in range(self.num_episodes):
-            self.env.reset()
-            self.winner_in_episodes.append(self.env.winner_ix)
+            obs, info = self.env.reset()
+            done = False
+            while not done:
+                action = None
+                obs, reward, done, info = self.env.step(action)
+
+            if "winner" in info and info["winner"] is not None:
+                self.winner_in_episodes.append(info["winner"])
 
         league_table = pd.Series(self.winner_in_episodes).value_counts()
         best_player = league_table.index[0]

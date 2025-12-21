@@ -31,8 +31,16 @@ class Player:
             # No legal moves, return FOLD as default
             return Action.FOLD
 
-        # Display legal actions
-        print(f"\n=== {self.name}'s Turn ===")
+        # Display player seat and stacks
+        player_seat = info.get("player_data", {}).get("position", "Unknown")
+        player_stacks = info.get("player_data", {}).get("stack", [])
+
+        # Display legal actions and player info
+        print(f"\n=== {self.name}'s Turn (Seat {player_seat}) ===")
+        if player_stacks:
+            print("Player Stacks:")
+            for seat, stack in enumerate(player_stacks):
+                print(f"  Seat {seat}: {stack:.2f}")
         print("Legal actions:")
         for i, action in enumerate(legal_actions):
             print(f"  {action.value}: {action.name}")
@@ -40,7 +48,7 @@ class Player:
         # Get user input
         while True:
             try:
-                choice = int(input("Enter action number: "))
+                choice = int(input(f"[Seat {player_seat}] Enter action number: "))
                 selected_action = action_mapping.get(choice)
 
                 if selected_action in legal_actions:

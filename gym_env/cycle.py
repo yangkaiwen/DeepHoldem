@@ -32,10 +32,15 @@ class PlayerCycle:
             self.lst
         )  # if the player can still play in the following rounds
         self.out_of_cash_but_contributed = [False] * len(self.lst)
-        self.new_hand_reset()
+        self.folder = [False] * len(self.lst)
         self.checkers = 0
-        self.folder = None
         self.max_raises_per_player_round = max_raises_per_player_round
+        self.preflop_no_raise = True  # Track if preflop had no raises
+
+        # Track contributions for unified rule checking
+        self.player_contributions = [0] * len(self.lst)
+        self.current_street_contributions = [0] * len(self.lst)
+        self.new_hand_reset()
         self.preflop_no_raise = True  # Track if preflop had no raises
 
         # Track contributions for unified rule checking

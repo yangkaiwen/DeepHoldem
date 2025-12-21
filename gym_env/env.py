@@ -15,7 +15,7 @@ from gym_env.rendering import PygletWindow, WHITE, RED, GREEN, BLUE
 from tools.hand_evaluator import get_winner
 from tools.helper import flatten
 
-# TODO: Make episode single round for faster training
+# TODO: Make episode single round for faster training - DONE
 
 # pylint: disable=import-outside-toplevel
 
@@ -74,7 +74,7 @@ class HoldemTable(Env):
         small_blind=1,
         big_blind=2,
         render=False,
-        funds_plot=True,
+        funds_plot=False,  # Changed default to False for single hands
         max_raises_per_player_round=2,
         use_cpp_montecarlo=False,
         raise_illegal_moves=False,
@@ -85,7 +85,7 @@ class HoldemTable(Env):
 
         Args:
             num_of_players (int): number of players that need to be added
-            initial_stacks (real): initial stacks per placyer
+            initial_stacks (real): initial stacks per player
             small_blind (real)
             big_blind (real)
             render (bool): render table after each move in graphical format
@@ -161,8 +161,11 @@ class HoldemTable(Env):
 
         self.raise_illegal_moves = raise_illegal_moves
 
+        # Track starting stacks for each hand
+        self.starting_stacks = initial_stacks
+
     def reset(self, seed=None, options=None):
-        """Reset after game over."""
+        """Reset after game over - now resets to a new hand."""
         super().reset(seed=seed)
 
         self.observation = None
@@ -176,8 +179,12 @@ class HoldemTable(Env):
             log.warning("No agents added. Add agents before resetting the environment.")
             return self.observation, self.info
 
+        # Reset stacks to initial amount for each hand
         for player in self.players:
             player.stack = self.initial_stacks
+
+        # Track starting stacks for this hand
+        self.hand_starting_stacks = [player.stack for player in self.players]
 
         self.dealer_pos = 0
         self.player_cycle = PlayerCycle(
@@ -189,13 +196,12 @@ class HoldemTable(Env):
         self._get_environment()
 
         # Set observation space based on actual observation shape
-        if self.observation_space is None:
-            from gymnasium.spaces import Box
+        from gymnasium.spaces import Box
 
-            obs_shape = self.observation.shape
-            self.observation_space = Box(
-                low=-np.inf, high=np.inf, shape=obs_shape, dtype=np.float32
-            )
+        obs_shape = self.observation.shape
+        self.observation_space = Box(
+            low=-np.inf, high=np.inf, shape=obs_shape, dtype=np.float32
+        )
 
         # auto play for agents where autoplay is set
         if self._agent_is_autoplay() and not self.done:
@@ -248,7 +254,7 @@ class HoldemTable(Env):
             log.debug(
                 f"Previous action reward for seat {self.acting_agent}: {self.reward}"
             )
-        return self.array_everything, self.reward, self.done, self.info
+        return self.observation, self.reward, self.done, False, self.info
 
     def _execute_step(self, action):
         self._process_decision(action)
@@ -257,7 +263,10 @@ class HoldemTable(Env):
 
         if self.stage in [Stage.END_HIDDEN, Stage.SHOWDOWN]:
             self._end_hand()
-            self._start_new_hand()
+            # Don't start new hand, just mark episode as done
+            self.done = True
+            # Display hand results
+            self._print_hand_results()
 
         self._get_environment()
 
@@ -270,6 +279,22 @@ class HoldemTable(Env):
                 f"{action} is an Illegal move, try again. Currently allowed: {self.legal_moves}"
             )
         self.reward = self.illegal_move_reward
+
+    def _print_hand_results(self):
+        """Display hand results with initial and final stacks"""
+        print("\n" + "=" * 50)
+        print("HAND ENDED - RESULTS")
+        print("=" * 50)
+        for seat, player in enumerate(self.players):
+            final_stack = player.stack
+            initial_stack = self.hand_starting_stacks[seat]
+            profit_loss = final_stack - initial_stack
+            percentage = (profit_loss / initial_stack * 100) if initial_stack > 0 else 0
+
+            print(
+                f"Seat {seat}: Initial: {initial_stack:.2f} → Final: {final_stack:.2f} | P&L: {profit_loss:+.2f} ({percentage:+.1f}%)"
+            )
+        print("=" * 50)
 
     def _agent_is_autoplay(self, idx=None):
         if not idx:
@@ -301,9 +326,7 @@ class HoldemTable(Env):
         # self.cummunity_data.active_players
 
         self.player_data = PlayerData()
-        self.player_data.stack = [
-            player.stack / (self.big_blind * 100) for player in self.players
-        ]
+        self.player_data.stack = [player.stack for player in self.players]
 
         if not self.current_player:  # game over
             self.current_player = self.players[self.winner_ix]
@@ -361,6 +384,7 @@ class HoldemTable(Env):
             "community_data": self.community_data.__dict__,
             "stage_data": [stage.__dict__ for stage in self.stage_data],
             "legal_moves": self.legal_moves,
+            "winner": self.winner_ix if self.done else None,
         }
 
         if self.render_switch:
@@ -368,30 +392,25 @@ class HoldemTable(Env):
 
     def _calculate_reward(self, last_action):
         """
-        Preliminiary implementation of reward function
-
-        - Currently missing potential additional winnings from future contributions
+        Reward function for single hand episodes
         """
-        # if last_action == Action.FOLD:
-        #     self.reward = -(
-        #             self.community_pot + self.current_round_pot)
-        # else:
-        #     self.reward = self.player_data.equity_to_river_alive * (self.community_pot + self.current_round_pot) - \
-        #                   (1 - self.player_data.equity_to_river_alive) * self.player_pots[self.current_player.seat]
         _ = last_action
         if self.done:
-            won = 1 if not self._agent_is_autoplay(idx=self.winner_ix) else -1
-            self.reward = self.initial_stacks * len(self.players) * won
-            log.debug(f"Keras-rl agent has reward {self.reward}")
-
-        elif len(self.funds_history) > 1:
-            self.reward = (
-                self.funds_history.iloc[-1, self.acting_agent]
-                - self.funds_history.iloc[-2, self.acting_agent]
-            )
-
+            # Calculate net gain/loss for the agent in this hand
+            # For RL agent, reward is change in stack from starting stack
+            for i, player in enumerate(self.players):
+                if not self._agent_is_autoplay(idx=i):
+                    # This is the RL agent
+                    net_change = player.stack - self.initial_stacks
+                    self.reward = net_change
+                    log.debug(
+                        f"RL agent (seat {i}) reward: {self.reward} (net change from hand)"
+                    )
+                    break
         else:
-            pass
+            # Small penalty for folding early or reward for good actions during hand
+            # You can adjust this as needed
+            self.reward = 0
 
     def _process_decision(self, action):  # pylint: disable=too-many-statements
         """Process the decisions that have been made by an agent."""
@@ -622,9 +641,6 @@ class HoldemTable(Env):
         """Deal new cards to players and reset table states."""
         self._save_funds_history()
 
-        if self._check_game_over():
-            return
-
         log.info("")
         log.info("++++++++++++++++++")
         log.info("Starting new hand.")
@@ -661,64 +677,33 @@ class HoldemTable(Env):
 
     def _save_funds_history(self):
         """Keep track of player funds history"""
-        funds_dict = {i: player.stack for i, player in enumerate(self.players)}
-        self.funds_history = pd.concat(
-            [self.funds_history, pd.DataFrame(funds_dict, index=[0])]
-        )
+        if not self.done:  # Only save if hand is still in progress
+            funds_dict = {i: player.stack for i, player in enumerate(self.players)}
+            self.funds_history = pd.concat(
+                [self.funds_history, pd.DataFrame(funds_dict, index=[0])]
+            )
 
     def _check_game_over(self):
-        """Check if only one player has money left"""
-        player_alive = []
-        self.player_cycle.new_hand_reset()
-
-        for idx, player in enumerate(self.players):
-            if player.stack > 0:
-                player_alive.append(True)
-                # Reset player status to active if they have chips
-                if idx < len(self.player_status):
-                    self.player_status[idx] = True
-                else:
-                    self.player_status.append(True)
-                # Ensure player is not marked as folder (unless they actually folded)
-                if idx < len(self.player_cycle.folder):
-                    self.player_cycle.folder[idx] = False
-            else:
-                # Player has $0 stack - they should be eliminated
-                if idx < len(self.player_status):
-                    self.player_status[idx] = False
-                else:
-                    self.player_status.append(False)
-                # Mark as folder to remove from current hand
-                if idx < len(self.player_cycle.folder):
-                    self.player_cycle.folder[idx] = True
-                # Deactivate player - they can't make moves
-                self.player_cycle.deactivate_player(idx)
-                # Mark as out of cash (but they didn't contribute this hand)
-                if idx < len(self.player_cycle.out_of_cash_but_contributed):
-                    self.player_cycle.out_of_cash_but_contributed[idx] = False
-
-        remaining_players = sum(player_alive)
-        if remaining_players < 2:
-            self._game_over()
-            return True
+        """Check if hand is over - simplified for single hand episodes"""
+        # In single hand mode, game is only over when hand ends (in _execute_step)
+        # We don't check for player elimination since stacks reset each hand
         return False
 
     def _game_over(self):
         """End of an episode."""
-        log.info("Game over.")
+        log.info("Hand over.")
         self.done = True
-        player_names = [f"{i} - {player.name}" for i, player in enumerate(self.players)]
-        self.funds_history.columns = player_names
-        if self.funds_plot:
-            self.funds_history.reset_index(drop=True).plot()
-        log.info(self.funds_history)
-        plt.show()
 
-        winner_in_episodes.append(self.winner_ix)
-        league_table = pd.Series(winner_in_episodes).value_counts()
-        best_player = league_table.index[0]
-        log.info(league_table)
-        log.info(f"Best Player: {best_player}")
+        # Only show funds plot if enabled
+        if self.funds_plot and len(self.funds_history) > 0:
+            player_names = [
+                f"{i} - {player.name}" for i, player in enumerate(self.players)
+            ]
+            self.funds_history.columns = player_names
+            self.funds_history.reset_index(drop=True).plot()
+            plt.show()
+
+        log.info(f"Hand completed. Winner: Player {self.winner_ix}")
 
     def _initiate_round(self):
         """A new round (flop, turn, river) is initiated"""
@@ -852,6 +837,7 @@ class HoldemTable(Env):
         self._clean_up_pots()
         self.winner_ix = self._get_winner()
         self._award_winner(self.winner_ix)
+        # Handled in _execute_step: self.done = True
 
     def _get_winner(self):
         """Determine which player has won the hand"""
