@@ -15,6 +15,8 @@ from gym_env.rendering import PygletWindow, WHITE, RED, GREEN, BLUE
 from tools.hand_evaluator import get_winner
 from tools.helper import flatten
 
+# TODO: Make episode single round for faster training
+
 # pylint: disable=import-outside-toplevel
 
 log = logging.getLogger(__name__)
@@ -121,6 +123,7 @@ class HoldemTable(Env):
         self.callers = []
         self.played_in_round = None
         self.min_call = None
+        self.last_raise_amount = 0  # Track raise amount for minimum raise rule
         self.community_data = None
         self.player_data = None
         self.stage_data = None
@@ -135,7 +138,7 @@ class HoldemTable(Env):
 
         # pots
         self.community_pot = 0
-        self.current_round_pot = 9
+        self.current_round_pot = 0
         self.player_pots = None  # individual player pots
 
         self.observation = None
@@ -177,14 +180,9 @@ class HoldemTable(Env):
             player.stack = self.initial_stacks
 
         self.dealer_pos = 0
-        max_steps_after_raiser = (self.max_raises_per_player_round - 1) * len(
-            self.players
-        ) - 1
         self.player_cycle = PlayerCycle(
             self.players,
             dealer_idx=-1,
-            max_steps_after_raiser=max_steps_after_raiser,
-            max_steps_after_big_blind=len(self.players),
             max_raises_per_player_round=self.max_raises_per_player_round,
         )
         self._start_new_hand()
@@ -312,22 +310,24 @@ class HoldemTable(Env):
 
         self.player_data.position = self.current_player.seat
         if self.calculate_equity:
+            # Count only players who have cards (stack > 0 at start of hand)
+            players_with_cards = sum(1 for player in self.players if player.cards)
             self.current_player.equity_alive = self.get_equity(
                 set(self.current_player.cards),
                 set(self.table_cards),
-                sum(self.player_cycle.alive),
+                players_with_cards,
                 MONTEACRLO_RUNS,
             )
             self.player_data.equity_to_river_2plr = self.get_equity(
                 set(self.current_player.cards),
                 set(self.table_cards),
-                sum(self.player_cycle.alive),
+                players_with_cards,
                 MONTEACRLO_RUNS,
             )
             self.player_data.equity_to_river_3plr = self.get_equity(
                 set(self.current_player.cards),
                 set(self.table_cards),
-                sum(self.player_cycle.alive),
+                players_with_cards,
                 MONTEACRLO_RUNS,
             )
         else:
@@ -337,7 +337,7 @@ class HoldemTable(Env):
         self.current_player.equity_alive = self.get_equity(
             set(self.current_player.cards),
             set(self.table_cards),
-            sum(self.player_cycle.alive),
+            sum(1 for player in self.players if player.cards),
             1000,
         )
         self.player_data.equity_to_river_alive = self.current_player.equity_alive
@@ -403,70 +403,177 @@ class HoldemTable(Env):
             self.player_cycle.mark_folder()
 
         else:
+            # Calculate current amount to call BEFORE this action
+            current_call_needed = max(
+                0, self.min_call - self.player_pots[self.current_player.seat]
+            )
 
             if action == Action.CALL:
-                contribution = min(
-                    self.min_call - self.player_pots[self.current_player.seat],
-                    self.current_player.stack,
-                )
+                contribution = min(current_call_needed, self.current_player.stack)
                 self.callers.append(self.current_player.seat)
                 self.last_caller = self.current_player.seat
+                # Update player cycle contribution
+                self.player_cycle.update_contribution(
+                    self.current_player.seat, contribution
+                )
 
-            # verify the player has enough in his stack
             elif action == Action.CHECK:
+                if current_call_needed > 0:
+                    raise ValueError("Cannot check when there's a bet to call")
                 contribution = 0
                 self.player_cycle.mark_checker()
 
-            elif action == Action.RAISE_3BB:
-                contribution = (
-                    3 * self.big_blind - self.player_pots[self.current_player.seat]
+            elif action == Action.BET_1_4_POT:
+                # Calculate pot-sized bet: total bet = call amount + pot after call
+                call_amount = current_call_needed
+                pot_after_call = (
+                    self.community_pot + self.current_round_pot + call_amount
                 )
+                total_bet = call_amount + (pot_after_call * 0.25)
+                contribution = min(total_bet, self.current_player.stack)
                 self.raisers.append(self.current_player.seat)
                 self.current_player.num_raises_in_street[self.stage] += 1
+                # Mark as raiser in player cycle
+                self.player_cycle.mark_raiser(contribution)
 
-            elif action == Action.RAISE_HALF_POT:
-                contribution = (self.community_pot + self.current_round_pot) / 2
+            elif action == Action.BET_1_3_POT:
+                call_amount = current_call_needed
+                pot_after_call = (
+                    self.community_pot + self.current_round_pot + call_amount
+                )
+                total_bet = call_amount + (pot_after_call * 0.33)
+                contribution = min(total_bet, self.current_player.stack)
                 self.raisers.append(self.current_player.seat)
                 self.current_player.num_raises_in_street[self.stage] += 1
+                # Mark as raiser in player cycle
+                self.player_cycle.mark_raiser(contribution)
 
-            elif action == Action.RAISE_POT:
-                contribution = self.community_pot + self.current_round_pot
+            elif action == Action.BET_1_2_POT:
+                call_amount = current_call_needed
+                pot_after_call = (
+                    self.community_pot + self.current_round_pot + call_amount
+                )
+                total_bet = call_amount + (pot_after_call * 0.50)
+                contribution = min(total_bet, self.current_player.stack)
                 self.raisers.append(self.current_player.seat)
                 self.current_player.num_raises_in_street[self.stage] += 1
+                # Mark as raiser in player cycle
+                self.player_cycle.mark_raiser(contribution)
 
-            elif action == Action.RAISE_2POT:
-                contribution = (self.community_pot + self.current_round_pot) * 2
+            elif action == Action.BET_2_3_POT:
+                call_amount = current_call_needed
+                pot_after_call = (
+                    self.community_pot + self.current_round_pot + call_amount
+                )
+                total_bet = call_amount + (pot_after_call * 0.66)
+                contribution = min(total_bet, self.current_player.stack)
                 self.raisers.append(self.current_player.seat)
                 self.current_player.num_raises_in_street[self.stage] += 1
+                # Mark as raiser in player cycle
+                self.player_cycle.mark_raiser(contribution)
+
+            elif action == Action.BET_3_4_POT:
+                call_amount = current_call_needed
+                pot_after_call = (
+                    self.community_pot + self.current_round_pot + call_amount
+                )
+                total_bet = call_amount + (pot_after_call * 0.75)
+                contribution = min(total_bet, self.current_player.stack)
+                self.raisers.append(self.current_player.seat)
+                self.current_player.num_raises_in_street[self.stage] += 1
+                # Mark as raiser in player cycle
+                self.player_cycle.mark_raiser(contribution)
+
+            elif action == Action.BET_POT:
+                # Pot-sized bet: total bet = call amount + pot after call
+                call_amount = current_call_needed
+                pot_after_call = (
+                    self.community_pot + self.current_round_pot + call_amount
+                )
+                total_bet = call_amount + pot_after_call
+                contribution = min(total_bet, self.current_player.stack)
+                self.raisers.append(self.current_player.seat)
+                self.current_player.num_raises_in_street[self.stage] += 1
+                # Mark as raiser in player cycle
+                self.player_cycle.mark_raiser(contribution)
+
+            elif action == Action.BET_3_2_POT:
+                call_amount = current_call_needed
+                pot_after_call = (
+                    self.community_pot + self.current_round_pot + call_amount
+                )
+                total_bet = call_amount + (pot_after_call * 1.50)
+                contribution = min(total_bet, self.current_player.stack)
+                self.raisers.append(self.current_player.seat)
+                self.current_player.num_raises_in_street[self.stage] += 1
+                # Mark as raiser in player cycle
+                self.player_cycle.mark_raiser(contribution)
+
+            elif action == Action.BET_2_POT:
+                call_amount = current_call_needed
+                pot_after_call = (
+                    self.community_pot + self.current_round_pot + call_amount
+                )
+                total_bet = call_amount + (pot_after_call * 2.00)
+                contribution = min(total_bet, self.current_player.stack)
+                self.raisers.append(self.current_player.seat)
+                self.current_player.num_raises_in_street[self.stage] += 1
+                # Mark as raiser in player cycle
+                self.player_cycle.mark_raiser(contribution)
+
+            elif action == Action.BET_MIN_RAISE:
+                # Minimum raise: match current bet + raise by at least last raise amount
+                # or big blind if no previous raise
+                min_raise_amount = max(self.last_raise_amount, self.big_blind)
+                total_bet = self.min_call + min_raise_amount
+                player_total_needed = (
+                    total_bet - self.player_pots[self.current_player.seat]
+                )
+                contribution = min(player_total_needed, self.current_player.stack)
+                self.raisers.append(self.current_player.seat)
+                self.current_player.num_raises_in_street[self.stage] += 1
+                # Mark as raiser in player cycle
+                self.player_cycle.mark_raiser(contribution)
 
             elif action == Action.ALL_IN:
                 contribution = self.current_player.stack
                 self.raisers.append(self.current_player.seat)
                 self.current_player.num_raises_in_street[self.stage] += 1
+                # Mark as raiser in player cycle
+                self.player_cycle.mark_raiser(contribution)
 
             elif action == Action.SMALL_BLIND:
                 contribution = np.minimum(self.small_blind, self.current_player.stack)
+                # Update player cycle contribution
+                self.player_cycle.update_contribution(
+                    self.current_player.seat, contribution
+                )
 
             elif action == Action.BIG_BLIND:
                 contribution = np.minimum(self.big_blind, self.current_player.stack)
-                self.player_cycle.mark_bb()
+                # Mark BB as default aggressor in player cycle
+                self.player_cycle.mark_bb(contribution)
             else:
                 raise RuntimeError("Illegal action.")
 
-            if contribution > self.min_call and not (
-                action == Action.BIG_BLIND or action == Action.SMALL_BLIND
-            ):
-                self.player_cycle.mark_raiser()
-
+            # Update player's contribution
             self.current_player.stack -= contribution
             self.player_pots[self.current_player.seat] += contribution
             self.current_round_pot += contribution
             self.last_player_pot = self.player_pots[self.current_player.seat]
 
+            # Calculate new total for this player
+            new_player_total = self.player_pots[self.current_player.seat]
+
+            # Update min_call (the maximum total contribution any player has made)
+            if new_player_total > self.min_call:
+                # If this is a raise (contribution > current_call_needed), update last_raise_amount
+                if contribution > current_call_needed:
+                    self.last_raise_amount = new_player_total - self.min_call
+                self.min_call = new_player_total
+
             if self.current_player.stack == 0 and contribution > 0:
                 self.player_cycle.mark_out_of_cash_but_contributed()
-
-            self.min_call = max(self.min_call, contribution)
 
             self.current_player.actions.append(action)
             self.current_player.last_action_in_stage = action.name
@@ -475,12 +582,19 @@ class HoldemTable(Env):
             self.player_max_win[self.current_player.seat] += contribution  # side pot
 
             pos = self.player_cycle.idx
-            rnd = self.stage.value + self.round_number_in_street
+            rnd = self.stage.value + self.player_cycle.round_number_in_street
             self.stage_data[rnd].calls[pos] = action == Action.CALL
             self.stage_data[rnd].raises[pos] = action in [
-                Action.RAISE_2POT,
-                Action.RAISE_HALF_POT,
-                Action.RAISE_POT,
+                Action.BET_2_POT,
+                Action.BET_1_2_POT,
+                Action.BET_POT,
+                Action.BET_1_3_POT,
+                Action.BET_1_4_POT,
+                Action.BET_2_3_POT,
+                Action.BET_3_4_POT,
+                Action.BET_3_2_POT,
+                Action.BET_MIN_RAISE,
+                Action.ALL_IN,
             ]
             self.stage_data[rnd].min_call_at_action[pos] = self.min_call / (
                 self.big_blind * 100
@@ -500,7 +614,8 @@ class HoldemTable(Env):
         log.info(
             f"Seat {self.current_player.seat} ({self.current_player.name}): {action} - Remaining stack: {self.current_player.stack}, "
             f"Round pot: {self.current_round_pot}, Community pot: {self.community_pot}, "
-            f"player pot: {self.player_pots[self.current_player.seat]}"
+            f"player pot: {self.player_pots[self.current_player.seat]}, min_call: {self.min_call}, "
+            f"last_raise_amount: {self.last_raise_amount}"
         )
 
     def _start_new_hand(self):
@@ -532,6 +647,12 @@ class HoldemTable(Env):
 
         for player in self.players:
             player.cards = []
+            player.num_raises_in_street = {
+                Stage.PREFLOP: 0,
+                Stage.FLOP: 0,
+                Stage.TURN: 0,
+                Stage.RIVER: 0,
+            }
 
         self._next_dealer()
 
@@ -553,9 +674,28 @@ class HoldemTable(Env):
         for idx, player in enumerate(self.players):
             if player.stack > 0:
                 player_alive.append(True)
+                # Reset player status to active if they have chips
+                if idx < len(self.player_status):
+                    self.player_status[idx] = True
+                else:
+                    self.player_status.append(True)
+                # Ensure player is not marked as folder (unless they actually folded)
+                if idx < len(self.player_cycle.folder):
+                    self.player_cycle.folder[idx] = False
             else:
-                self.player_status.append(False)
+                # Player has $0 stack - they should be eliminated
+                if idx < len(self.player_status):
+                    self.player_status[idx] = False
+                else:
+                    self.player_status.append(False)
+                # Mark as folder to remove from current hand
+                if idx < len(self.player_cycle.folder):
+                    self.player_cycle.folder[idx] = True
+                # Deactivate player - they can't make moves
                 self.player_cycle.deactivate_player(idx)
+                # Mark as out of cash (but they didn't contribute this hand)
+                if idx < len(self.player_cycle.out_of_cash_but_contributed):
+                    self.player_cycle.out_of_cash_but_contributed[idx] = False
 
         remaining_players = sum(player_alive)
         if remaining_players < 2:
@@ -587,8 +727,12 @@ class HoldemTable(Env):
         self.raisers = []
         self.callers = []
         self.min_call = 0
+        self.last_raise_amount = self.big_blind  # Minimum raise is at least big blind
         for player in self.players:
             player.last_action_in_stage = ""
+            # Reset raises counter for new street
+            player.num_raises_in_street[self.stage] = 0
+
         self.player_cycle.new_street_reset()
 
         # advance headsup players by 1 step after preflop
@@ -598,22 +742,34 @@ class HoldemTable(Env):
         if self.stage == Stage.PREFLOP:
             log.info("")
             log.info("===Round: Stage: PREFLOP")
-            # max steps total will be adjusted again at bb
-            self.player_cycle.max_steps_total = (
-                len(self.players) * self.max_raises_per_player_round + 2
-            )
 
             self._next_player()
+            # Skip players with $0 stack when posting blinds
+            while self.current_player.stack == 0:
+                log.warning(
+                    f"Player {self.current_player.seat} has $0 stack, skipping small blind"
+                )
+                self._next_player()
             self._process_decision(Action.SMALL_BLIND)
+
             self._next_player()
+            # Skip players with $0 stack when posting blinds
+            while self.current_player.stack == 0:
+                log.warning(
+                    f"Player {self.current_player.seat} has $0 stack, skipping big blind"
+                )
+                self._next_player()
             self._process_decision(Action.BIG_BLIND)
+
             self._next_player()
+            # Skip players with $0 stack for first action
+            while self.current_player.stack == 0:
+                log.warning(
+                    f"Player {self.current_player.seat} has $0 stack, skipping first action"
+                )
+                self._next_player()
 
         elif self.stage in [Stage.FLOP, Stage.TURN, Stage.RIVER]:
-            self.player_cycle.max_steps_total = (
-                len(self.players) * self.max_raises_per_player_round
-            )
-
             self._next_player()
 
         elif self.stage == Stage.SHOWDOWN:
@@ -633,25 +789,57 @@ class HoldemTable(Env):
         self.player_status = [True] * len(self.players)
         self.player_pots = [0] * len(self.players)
 
+    def _is_betting_round_complete(self):
+        """Check if the current betting round is complete using unified rules."""
+        # Let the PlayerCycle handle the unified rule logic
+        return self.player_cycle._should_end_betting_round()
+
+    def _find_next_active_player(self, start_idx):
+        """Find the next active player starting from start_idx."""
+        num_players = len(self.players)
+
+        for offset in range(1, num_players + 1):
+            idx = (start_idx + offset) % num_players
+            if (
+                self.player_cycle.can_still_make_moves_in_this_hand[idx]
+                or self.player_cycle.out_of_cash_but_contributed[idx]
+            ):
+                return idx
+
+        return -1  # No active players found
+
     def _end_round(self):
         """End of preflop, flop, turn or river"""
+        # First check if betting round is actually complete
+        if not self._is_betting_round_complete():
+            log.warning("Attempting to end round when betting is not complete!")
+            # Try to find next player to act
+            next_idx = self._find_next_active_player(self.player_cycle.idx)
+            if next_idx >= 0:
+                self.player_cycle.idx = next_idx
+                self.current_player = self.players[next_idx]
+                return  # Don't end round
+
+        # Close the current round and move pots
         self._close_round()
+
+        # Move to next street
         if self.stage == Stage.PREFLOP:
             self.stage = Stage.FLOP
             self._distribute_cards_to_table(3)
-
+            log.info("--- FLOP ---")
         elif self.stage == Stage.FLOP:
             self.stage = Stage.TURN
             self._distribute_cards_to_table(1)
-
+            log.info("--- TURN ---")
         elif self.stage == Stage.TURN:
             self.stage = Stage.RIVER
             self._distribute_cards_to_table(1)
-
+            log.info("--- RIVER ---")
         elif self.stage == Stage.RIVER:
             self.stage = Stage.SHOWDOWN
+            log.info("--- SHOWDOWN ---")
 
-        log.info("--------------------------------")
         log.info(f"===ROUND: {self.stage} ===")
         self._clean_up_pots()
 
@@ -714,77 +902,120 @@ class HoldemTable(Env):
 
     def _next_player(self):
         """Move to the next player"""
+        # First check if all non-folded players are all-in
+        non_folded_indices = self.player_cycle.get_non_folded_players()
+        if non_folded_indices:
+            all_all_in = all(
+                self.player_cycle.out_of_cash_but_contributed[i]
+                for i in non_folded_indices
+            )
+            if all_all_in and len(non_folded_indices) >= 2:
+                log.info(
+                    "All non-folded players are all-in. Dealing remaining community cards and going to showdown."
+                )
+                # Skip to showdown by ending current round and subsequent rounds
+                while self.stage != Stage.SHOWDOWN:
+                    self._end_round()
+                return
+
         self.current_player = self.player_cycle.next_player()
+
         if not self.current_player:
+            # Player cycle indicates round should end based on unified rules
             if sum(self.player_cycle.alive) < 2:
                 log.info("Only one player remaining in round")
                 self.stage = Stage.END_HIDDEN
             else:
-                log.info("End round - no current player returned")
+                log.info("Betting round complete based on unified rules")
                 self._end_round()
-                # todo: in some cases no new round should be initialized bc only one player is playing only it seems
-                self._initiate_round()
-
-        elif (
-            self.current_player == "max_steps_total"
-            or self.current_player == "max_steps_after_raiser"
-        ):
-            log.debug(self.current_player)
-            log.info("End of round ")
-            self._end_round()
-            return
+                # Only initiate new round if we're not at showdown
+                if self.stage != Stage.SHOWDOWN:
+                    self._initiate_round()
 
     def _get_legal_moves(self):
         """Determine what moves are allowed in the current state"""
         self.legal_moves = []
-        if self.player_pots[self.current_player.seat] == max(self.player_pots):
+
+        # Check if player can check (has matched the current bet)
+        if self.player_pots[self.current_player.seat] >= self.min_call:
             self.legal_moves.append(Action.CHECK)
         else:
             self.legal_moves.append(Action.CALL)
             self.legal_moves.append(Action.FOLD)
 
+        # Calculate raise options
+        player_current_contribution = self.player_pots[self.current_player.seat]
+        call_amount_needed = max(0, self.min_call - player_current_contribution)
+
+        # Minimum raise amount is the last raise amount or big blind, whichever is larger
+        min_raise_increment = max(self.last_raise_amount, self.big_blind)
+        min_total_for_raise = self.min_call + min_raise_increment
+
+        # Player needs to have at least call_amount_needed + min_raise_increment to raise
+        min_raise_contribution = min_total_for_raise - player_current_contribution
+
+        # Check if player can make a minimum raise
         if (
-            self.current_player.num_raises_in_street[self.stage]
-            < self.max_raises_per_player_round
+            self.current_player.stack >= min_raise_contribution
+            and min_raise_contribution > call_amount_needed
         ):
-            if (
-                self.current_player.stack
-                >= 3 * self.big_blind - self.player_pots[self.current_player.seat]
-            ):
-                self.legal_moves.append(Action.RAISE_3BB)
+            self.legal_moves.append(Action.BET_MIN_RAISE)
 
-            if (
-                self.current_player.stack
-                >= ((self.community_pot + self.current_round_pot) / 2)
-                >= self.min_call
-            ):
-                self.legal_moves.append(Action.RAISE_HALF_POT)
+        # Check other raise sizes (pot-sized bets)
+        # For each bet size, calculate the total bet and check if player can afford it
+        bet_sizes = [
+            (Action.BET_1_4_POT, 0.25),
+            (Action.BET_1_3_POT, 0.33),
+            (Action.BET_1_2_POT, 0.50),
+            (Action.BET_2_3_POT, 0.66),
+            (Action.BET_3_4_POT, 0.75),
+            (Action.BET_POT, 1.00),
+            (Action.BET_3_2_POT, 1.50),
+            (Action.BET_2_POT, 2.00),
+        ]
 
-            if (
-                self.current_player.stack
-                >= (self.community_pot + self.current_round_pot)
-                >= self.min_call
-            ):
-                self.legal_moves.append(Action.RAISE_POT)
+        for action_type, multiplier in bet_sizes:
+            # Calculate total bet for this action
+            pot_after_call = (
+                self.community_pot + self.current_round_pot + call_amount_needed
+            )
+            total_bet = call_amount_needed + (pot_after_call * multiplier)
+            contribution_needed = total_bet - player_current_contribution
 
+            # Check if player can afford it and it's at least a minimum raise
             if (
-                self.current_player.stack
-                >= ((self.community_pot + self.current_round_pot) * 2)
-                >= self.min_call
+                self.current_player.stack >= contribution_needed
+                and contribution_needed > call_amount_needed
+                and (total_bet - self.min_call) >= min_raise_increment
             ):
-                self.legal_moves.append(Action.RAISE_2POT)
+                self.legal_moves.append(action_type)
 
-            if self.current_player.stack > 0:
-                self.legal_moves.append(Action.ALL_IN)
+        # ALL_IN: Always legal if player has stack
+        if self.current_player.stack > 0:
+            self.legal_moves.append(Action.ALL_IN)
 
         log.debug(
-            f"Community+current round pot pot: {self.community_pot + self.current_round_pot}"
+            f"Legal moves for seat {self.current_player.seat}: {self.legal_moves}"
         )
 
     def _close_round(self):
         """put player_pots into community pots"""
+        # Log the state before closing
+        log.info(
+            f"Closing round. Community pot: {self.community_pot}, "
+            f"Current round pot: {self.current_round_pot}, "
+            f"Min call: {self.min_call}"
+        )
+
+        for i, pot in enumerate(self.player_pots):
+            if pot > 0:
+                log.debug(f"Player {i} contributed {pot} this round")
+
         self.community_pot += sum(self.player_pots)
+        self.current_round_pot = 0
         self.player_pots = [0] * len(self.players)
+        self.min_call = 0  # Reset for next round
+        self.last_raise_amount = self.big_blind  # Reset to big blind
         self.played_in_round = 0
 
     def _create_card_deck(self):
@@ -798,7 +1029,7 @@ class HoldemTable(Env):
         for player in self.players:
             player.cards = []
             if player.stack <= 0:
-                continue
+                continue  # Skip players with $0 stack
             for _ in range(2):
                 card = np.random.randint(0, len(self.deck))
                 player.cards.append(self.deck.pop(card))

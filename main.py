@@ -140,7 +140,7 @@ class SelfPlay:
         from agents.agent_keypress import Player as KeyPressAgent
 
         env_name = "neuron_poker-v0"
-        num_of_plrs = 2
+        num_of_plrs = 3
         self.env = gym.make(env_name, initial_stacks=self.stack, render=self.render)
         for _ in range(num_of_plrs):
             player = KeyPressAgent()
