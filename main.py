@@ -30,6 +30,7 @@ import numpy as np
 import pandas as pd
 from docopt import docopt
 
+import gym_env
 from gym_env.env import PlayerShell
 from tools.helper import get_config
 from tools.helper import init_logger
@@ -106,24 +107,45 @@ class SelfPlay:
         self.log = logging.getLogger(__name__)
 
     def random_agents(self):
-        """Create an environment with 6 random players"""
+        """Create an environment with random number of players (2-6) with random stacks and dealer position"""
         from agents.agent_random import Player as RandomPlayer
 
         env_name = "neuron_poker-v0"
-        num_of_plrs = 6
-        self.env = gym.make(
-            env_name,
-            initial_stacks=self.stack,
-            render=self.render,
-            funds_plot=self.funds_plot,  # Pass funds_plot to environment
-        )
-        for _ in range(num_of_plrs):
-            player = RandomPlayer()
-            self.env.unwrapped.add_player(player)
 
         for episode in range(self.num_episodes):
-            self.log.info(f"Starting episode {episode + 1}/{self.num_episodes}")
-            obs, info = self.env.reset()
+            # Randomly select number of players (2-6)
+            num_of_plrs = np.random.randint(2, 7)
+
+            # Randomly assign stacks for each player (200-2000)
+            player_stacks = np.random.uniform(200, 2000, num_of_plrs)
+
+            # Randomly select dealer position (0 to num_players-1)
+            dealer_pos = np.random.randint(0, num_of_plrs)
+
+            self.log.info(
+                f"Starting episode {episode + 1}/{self.num_episodes} with {num_of_plrs} players"
+            )
+            self.log.info(f"Player stacks: {player_stacks}")
+            self.log.info(f"Dealer position: {dealer_pos}")
+
+            # Create new environment for this episode
+            self.env = gym.make(
+                env_name,
+                initial_stacks=self.stack,  # This will be overridden per player
+                render=self.render,
+                funds_plot=self.funds_plot,  # Pass funds_plot to environment
+            )
+
+            # Add players with their randomly assigned stacks
+            for i in range(num_of_plrs):
+                player = RandomPlayer()
+                self.env.unwrapped.add_player(player)
+                # Override the stack for this player
+                self.env.unwrapped.players[i].stack = int(player_stacks[i])
+
+            # Reset with dealer position override via options dict
+            obs, info = self.env.reset(options={"dealer_pos": dealer_pos})
+
             done = False
             total_reward = 0
 
@@ -157,7 +179,7 @@ class SelfPlay:
         """Create an environment with key press agents"""
         from agents.agent_keypress import Player as KeyPressAgent
 
-        env_name = "neuron_poker-v0"
+        env_name = "Holdem_NoLimit-v0"
         num_of_plrs = 3
         self.env = gym.make(env_name, initial_stacks=self.stack, render=self.render)
         for _ in range(num_of_plrs):
@@ -171,13 +193,8 @@ class SelfPlay:
             # Store initial stacks before reset (which deducts blinds)
             initial_stacks = [self.stack] * num_of_plrs
 
-            obs, info = self.env.reset()
-
-            # Game loop for this episode
-            done = False
-            while not done:
-                obs, reward, terminated, truncated, info = self.env.step(None)
-                done = terminated or truncated
+            self.env.unwrapped.reset()
+            self.env.unwrapped.run()
 
     def equity_vs_random(self):
         """Create 6 players, 4 of them equity based, 2 of them random"""

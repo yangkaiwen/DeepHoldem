@@ -15,7 +15,6 @@ class PlayerCycle:
         lst,
         start_idx=0,
         dealer_idx=0,
-        max_raises_per_player_round=2,
     ):
         """Cycle over a list"""
         self.lst = lst
@@ -34,7 +33,6 @@ class PlayerCycle:
         self.out_of_cash_but_contributed = [False] * len(self.lst)
         self.folder = [False] * len(self.lst)
         self.checkers = 0
-        self.max_raises_per_player_round = max_raises_per_player_round
         self.preflop_no_raise = True  # Track if preflop had no raises
 
         # Track contributions for unified rule checking

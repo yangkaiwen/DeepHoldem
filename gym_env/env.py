@@ -75,7 +75,6 @@ class HoldemTable(Env):
         big_blind=2,
         render=False,
         funds_plot=False,  # Changed default to False for single hands
-        max_raises_per_player_round=2,
         use_cpp_montecarlo=False,
         raise_illegal_moves=False,
         calculate_equity=False,
@@ -90,7 +89,6 @@ class HoldemTable(Env):
             big_blind (real)
             render (bool): render table after each move in graphical format
             funds_plot (bool): show plot of funds history at end of each episode
-            max_raises_per_player_round (int): max raises per round per player
 
         """
         if use_cpp_montecarlo:
@@ -133,7 +131,6 @@ class HoldemTable(Env):
         self.initial_stacks = initial_stacks
         self.acting_agent = None
         self.funds_plot = funds_plot
-        self.max_raises_per_player_round = max_raises_per_player_round
         self.calculate_equity = calculate_equity
 
         # pots
@@ -164,8 +161,17 @@ class HoldemTable(Env):
         # Track starting stacks for each hand
         self.starting_stacks = initial_stacks
 
+        # Track previous stack for incremental reward calculation
+        self.previous_stacks = None
+
     def reset(self, seed=None, options=None):
-        """Reset after game over - now resets to a new hand."""
+        """Reset after game over - now resets to a new hand.
+
+        Args:
+            seed: Random seed for reproducibility
+            options: Optional dict with:
+                - dealer_pos (int): Override dealer position (0 to num_players-1)
+        """
         super().reset(seed=seed)
 
         self.observation = None
@@ -186,11 +192,20 @@ class HoldemTable(Env):
         # Track starting stacks for this hand
         self.hand_starting_stacks = [player.stack for player in self.players]
 
-        self.dealer_pos = 0
+        # Initialize previous stacks for incremental reward calculation
+        self.previous_stacks = [player.stack for player in self.players]
+
+        # Allow override of dealer position via options
+        if options and "dealer_pos" in options:
+            self.dealer_pos = options["dealer_pos"]
+            self.dealer_pos_override = True
+            log.info(f"Dealer position set to seat {self.dealer_pos}")
+        else:
+            self.dealer_pos = 0
+            self.dealer_pos_override = False
         self.player_cycle = PlayerCycle(
             self.players,
             dealer_idx=-1,
-            max_raises_per_player_round=self.max_raises_per_player_round,
         )
         self._start_new_hand()
         self._get_environment()
@@ -203,72 +218,71 @@ class HoldemTable(Env):
             low=-np.inf, high=np.inf, shape=obs_shape, dtype=np.float32
         )
 
-        # auto play for agents where autoplay is set
-        if self._agent_is_autoplay() and not self.done:
-            self.step(
-                "initial_player_autoplay"
-            )  # kick off the first action after bb by an autoplay agent
-
-        return self.observation, self.info
-
     def step(self, action):  # pylint: disable=arguments-differ
         """
-        Next player makes a move and a new environment is observed.
+        Process a single action for the current player.
+        Returns observation, reward, done, and info for this step only.
+        Does NOT advance to next player or handle game-end logic.
 
         Args:
-            action: Used for testing only. Needs to be of Action type
-
+            action: Action to take (from agent or external training loop).
         """
-        # loop over step function, calling the agent's action method
-        # until either the env id sone, or an agent is just a shell and
-        # and will get a call from to the step function externally (e.g. via
-        # keras-rl
         self.reward = 0
         self.acting_agent = self.player_cycle.idx
-        if self._agent_is_autoplay():
-            while self._agent_is_autoplay() and not self.done:
-                log.debug("Autoplay agent. Call action method of agent.")
-                self._get_environment()
-                # call agent's action method
-                action = self.current_player.agent_obj.action(
-                    self.legal_moves, self.observation, self.info
-                )
-                if Action(action) not in self.legal_moves:
-                    self._illegal_move(action)
-                else:
-                    self._execute_step(Action(action))
-                    if self.first_action_for_hand[self.acting_agent] or self.done:
-                        self.first_action_for_hand[self.acting_agent] = False
-                        self._calculate_reward(action)
-
-        else:  # action received from player shell (e.g. keras rl, not autoplay)
-            self._get_environment()  # get legal moves
-            if Action(action) not in self.legal_moves:
-                self._illegal_move(action)
-            else:
-                self._execute_step(Action(action))
-                if self.first_action_for_hand[self.acting_agent] or self.done:
-                    self.first_action_for_hand[self.acting_agent] = False
-                    self._calculate_reward(action)
-
-            log.debug(
-                f"Previous action reward for seat {self.acting_agent}: {self.reward}"
-            )
-        return self.observation, self.reward, self.done, False, self.info
-
-    def _execute_step(self, action):
-        self._process_decision(action)
-
-        self._next_player()
-
-        if self.stage in [Stage.END_HIDDEN, Stage.SHOWDOWN]:
-            self._end_hand()
-            # Don't start new hand, just mark episode as done
-            self.done = True
-            # Display hand results
-            self._print_hand_results()
 
         self._get_environment()
+
+        # Validate and execute the action
+        if Action(action) not in self.legal_moves:
+            self._illegal_move(action)
+        else:
+            self._execute_step(Action(action))
+
+        log.info(f"Current action reward for seat {self.acting_agent}: {self.reward}")
+        return self.observation, self.reward, self.done, False, self.info
+
+    def run(self, action=None):
+        """
+        Execute game flow iteratively until hand ends.
+        Gets action from current player each iteration, steps, then handles game flow.
+        Updates self.observation, self.reward, self.done, self.info as game progresses.
+        """
+        while not self.done:
+            # Get action from current player
+            action = self.current_player.agent_obj.action(
+                self.legal_moves, self.observation, self.info
+            )
+
+            # Process the action
+            observation, reward, done, truncated, info = self.step(action)
+            # print(
+            #     f"step() outputs - observation[:20]: {observation[:20]}, reward: {reward}, done: {done}, truncated: {truncated}"
+            # )
+
+            # Advance to next player
+            self._next_player()
+
+            # Only update environment if there's a valid current player
+            if self.current_player:
+                self._get_environment()
+
+            # Check if game should end (happens after next_player triggers stage change)
+            if self.stage in [Stage.END_HIDDEN, Stage.SHOWDOWN]:
+                self._end_hand()
+                print("Hand ended.")
+                self.done = True
+                self._calculate_terminal_rewards()
+                print("terminal rewards calculated")
+                self._print_hand_results()
+                print("final results printed")
+
+    def _execute_step(self, action):
+        """Process a single decision action. Does NOT handle game flow."""
+        self._process_decision(action)
+
+        # Calculate incremental reward for non-terminal states
+        if not (self.stage in [Stage.END_HIDDEN, Stage.SHOWDOWN]):
+            self._calculate_reward(action)
 
     def _illegal_move(self, action):
         log.warning(
@@ -295,11 +309,6 @@ class HoldemTable(Env):
                 f"Seat {seat}: Initial: {initial_stack:.2f} → Final: {final_stack:.2f} | P&L: {profit_loss:+.2f} ({percentage:+.1f}%)"
             )
         print("=" * 50)
-
-    def _agent_is_autoplay(self, idx=None):
-        if not idx:
-            return hasattr(self.current_player.agent_obj, "autoplay")
-        return hasattr(self.players[idx].agent_obj, "autoplay")
 
     def _get_environment(self):
         """Observe the environment"""
@@ -392,25 +401,67 @@ class HoldemTable(Env):
 
     def _calculate_reward(self, last_action):
         """
-        Reward function for single hand episodes
+        Reward function based on incremental stack change.
+
+        The reward is the change in stack since the last action, allowing
+        the agent to learn from immediate consequences of each decision.
+
+        Calculates reward for the current acting agent (self.acting_agent).
+
+        Note: Blinds (SB/BB) don't update previous_stacks, so the first voluntary
+        action's reward includes the blind cost.
         """
-        _ = last_action
-        if self.done:
-            # Calculate net gain/loss for the agent in this hand
-            # For RL agent, reward is change in stack from starting stack
-            for i, player in enumerate(self.players):
-                if not self._agent_is_autoplay(idx=i):
-                    # This is the RL agent
-                    net_change = player.stack - self.initial_stacks
-                    self.reward = net_change
-                    log.debug(
-                        f"RL agent (seat {i}) reward: {self.reward} (net change from hand)"
-                    )
-                    break
-        else:
-            # Small penalty for folding early or reward for good actions during hand
-            # You can adjust this as needed
-            self.reward = 0
+        # Don't calculate reward for forced blind actions
+        if last_action in [Action.SMALL_BLIND, Action.BIG_BLIND]:
+            log.info(
+                f"Agent (seat {self.acting_agent}) posted {last_action.name} "
+                f"- reward calculation deferred to next voluntary action"
+            )
+            return
+
+        # Calculate reward for the current acting agent
+        i = self.acting_agent
+        current_stack = self.players[i].stack
+        previous_stack = self.previous_stacks[i]
+        incremental_change = current_stack - previous_stack
+
+        self.reward = incremental_change
+
+        # Update previous stack for next step
+        self.previous_stacks[i] = current_stack
+
+        log.info(
+            f"Agent (seat {i}) incremental reward: {self.reward} "
+            f"(stack: {previous_stack:.2f} -> {current_stack:.2f})"
+        )
+
+    def _calculate_terminal_rewards(self):
+        """
+        Calculate final rewards for all players when hand ends.
+
+        This ensures all players receive their terminal reward based on
+        their final stack change, including pot winnings.
+
+        Updates previous_stacks for all players so they're ready for next hand.
+        Sets self.reward for the acting agent's terminal reward.
+        """
+        log.info("Calculating terminal rewards for all players")
+        for i, player in enumerate(self.players):
+            current_stack = player.stack
+            previous_stack = self.previous_stacks[i]
+            terminal_reward = current_stack - previous_stack
+
+            # Update previous stack for all players
+            self.previous_stacks[i] = current_stack
+
+            log.info(
+                f"Player (seat {i}) terminal reward: {terminal_reward} "
+                f"(stack: {previous_stack:.2f} -> {current_stack:.2f})"
+            )
+
+            # Set the acting agent's terminal reward as the return value
+            if i == self.acting_agent:
+                self.reward = terminal_reward
 
     def _process_decision(self, action):  # pylint: disable=too-many-statements
         """Process the decisions that have been made by an agent."""
@@ -884,7 +935,18 @@ class HoldemTable(Env):
                 player.stack += remains[i]
 
     def _next_dealer(self):
-        self.dealer_pos = self.player_cycle.next_dealer().seat
+        """Move to next dealer, or use override if set on first hand."""
+        if hasattr(self, "dealer_pos_override") and self.dealer_pos_override:
+            # Use the override position on first hand only
+            # Set player_cycle's dealer_idx to point to the correct player by seat
+            for idx, player in enumerate(self.players):
+                if player.seat == self.dealer_pos:
+                    self.player_cycle.dealer_idx = idx - 1
+                    break
+            self.dealer_pos_override = False  # Only use override once
+            log.info(f"Using overridden dealer position: seat {self.dealer_pos}")
+        else:
+            self.dealer_pos = self.player_cycle.next_dealer().seat
 
     def _next_player(self):
         """Move to the next player"""

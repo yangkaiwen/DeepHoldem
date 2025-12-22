@@ -1,4 +1,5 @@
 """Helper functions."""
+
 # pylint: disable = ungrouped-imports, too-few-public-methods
 
 import datetime
@@ -15,10 +16,11 @@ from multiprocessing.pool import ThreadPool
 
 import pandas as pd
 
-CONFIG_FILENAME = 'config.ini'
+CONFIG_FILENAME = "config.ini"
 log = logging.getLogger(__name__)
-COMPUTER_NAME = os.getenv('COMPUTERNAME')
-ON_CI = os.environ.get('ENV') != 'CI'
+COMPUTER_NAME = os.getenv("COMPUTERNAME")
+ON_CI = os.environ.get("ENV") != "CI"
+
 
 class Singleton(type):
     """
@@ -31,7 +33,9 @@ class Singleton(type):
 
     _instances = {}
 
-    def __call__(cls, *args, **kwargs):  # called at instantiation of an object that uses this metaclass
+    def __call__(
+        cls, *args, **kwargs
+    ):  # called at instantiation of an object that uses this metaclass
         """Is called at instantiation of a class that refers to this metaclass."""
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
@@ -56,9 +60,13 @@ class CustomConfigParser(metaclass=Singleton):
     def __init__(self, config_override_filename=None):
         """Load the configuration (usually config.ini)."""
         if config_override_filename and not os.path.isfile(config_override_filename):
-            raise ValueError("Unable to find config file {}".format(config_override_filename))
+            raise ValueError(
+                "Unable to find config file {}".format(config_override_filename)
+            )
 
-        main_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config.ini')
+        main_file = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "config.ini"
+        )
 
         self.config = ConfigParser(interpolation=ExtendedInterpolation())
         self.config.optionxform = str  # enforce case sensitivity on key
@@ -71,11 +79,11 @@ class CustomConfigParser(metaclass=Singleton):
 
 def get_config():
     """Public accessor for config file."""
-    config = CustomConfigParser(os.path.join(get_dir('codebase'), 'config.ini'))
+    config = CustomConfigParser(os.path.join(get_dir("codebase"), "config.ini"))
     return config.config
 
 
-def init_logger(screenlevel, filename=None, logdir=None, modulename=''):
+def init_logger(screenlevel, filename=None, logdir=None, modulename=""):
     """
     Initialize Logger.
 
@@ -88,43 +96,60 @@ def init_logger(screenlevel, filename=None, logdir=None, modulename=''):
     """
     # for all other modules just use log = logging.getLogger(__name__)
     if not logdir:
-        logdir = get_dir('log')
+        logdir = get_dir("log")
 
     root = logging.getLogger()
     [root.removeHandler(rh) for rh in root.handlers]  # pylint: disable=W0106
     [root.removeFilter(rf) for rf in root.filters]  # pylint: disable=W0106
 
-    root = logging.getLogger('')
-    root.setLevel(logging.WARNING)
+    root = logging.getLogger("")
+    root.setLevel(
+        logging.DEBUG
+    )  # Set to DEBUG so handlers can control what gets displayed
 
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(screenlevel)
-    if filename and not filename == 'None':
+    if filename and not filename == "None":
         filename = filename.replace("{date}", datetime.date.today().strftime("%Y%m%d"))
-        all_logs_filename = os.path.join(logdir, filename + '.log')
-        error_filename = os.path.join(logdir, filename + '_errors.log')
-        info_filename = os.path.join(logdir, filename + '_info.log')
+        all_logs_filename = os.path.join(logdir, filename + ".log")
+        error_filename = os.path.join(logdir, filename + "_errors.log")
+        info_filename = os.path.join(logdir, filename + "_info.log")
 
         print("Saving log file to: {}".format(all_logs_filename))
         print("Saving info file to: {}".format(info_filename))
         print("Saving error only file to: {}".format(error_filename))
 
-        file_handler2 = handlers.RotatingFileHandler(all_logs_filename, maxBytes=300000, backupCount=20)
+        file_handler2 = handlers.RotatingFileHandler(
+            all_logs_filename, maxBytes=300000, backupCount=20
+        )
         file_handler2.setLevel(logging.DEBUG)
 
-        error_handler = handlers.RotatingFileHandler(error_filename, maxBytes=300000, backupCount=20)
+        error_handler = handlers.RotatingFileHandler(
+            error_filename, maxBytes=300000, backupCount=20
+        )
         error_handler.setLevel(logging.WARNING)
 
-        info_handler = handlers.RotatingFileHandler(info_filename, maxBytes=30000000, backupCount=100)
+        info_handler = handlers.RotatingFileHandler(
+            info_filename, maxBytes=30000000, backupCount=100
+        )
         info_handler.setLevel(logging.INFO)
 
         # formatter when using --log command line and writing log to a file
         file_handler2.setFormatter(
-            logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)d - %(message)s'))
+            logging.Formatter(
+                "%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)d - %(message)s"
+            )
+        )
         error_handler.setFormatter(
-            logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)d - %(message)s'))
+            logging.Formatter(
+                "%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)d - %(message)s"
+            )
+        )
         info_handler.setFormatter(
-            logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)d - %(message)s'))
+            logging.Formatter(
+                "%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)d - %(message)s"
+            )
+        )
 
         # root.addHandler(fh)
         root.addHandler(file_handler2)
@@ -132,8 +157,7 @@ def init_logger(screenlevel, filename=None, logdir=None, modulename=''):
         root.addHandler(info_handler)
 
     # screen output formatter
-    stream_handler.setFormatter(
-        logging.Formatter('%(levelname)s - %(message)s'))
+    stream_handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
     root.addHandler(stream_handler)
 
     mainlogger = logging.getLogger(modulename)
@@ -151,8 +175,10 @@ def get_dir(*paths):
     3. if neither of the above, custom directory relative to codebase
 
     """
-    codebase = os.path.abspath(os.path.dirname(os.path.dirname(os.path.relpath(__file__))))
-    if paths[0] == 'codebase':  # pylint: disable=no-else-return
+    codebase = os.path.abspath(
+        os.path.dirname(os.path.dirname(os.path.relpath(__file__)))
+    )
+    if paths[0] == "codebase":  # pylint: disable=no-else-return
         return codebase
     else:
         # check if entry in config.ini
@@ -161,12 +187,16 @@ def get_dir(*paths):
             specified_path = config.get("Files", paths[0])
             if len(paths) > 1:
                 specified_path = os.path.join(specified_path, *paths[1:])
-            thirdparty_dir = config.get('Thirdparty', 'thirdparty_dir')
-            full_path = os.path.abspath(os.path.join(codebase, thirdparty_dir, specified_path))
+            thirdparty_dir = config.get("Thirdparty", "thirdparty_dir")
+            full_path = os.path.abspath(
+                os.path.join(codebase, thirdparty_dir, specified_path)
+            )
             return full_path
         except:  # pylint: disable=bare-except
             # otherwise just return absolute path in codebase
-            return os.path.abspath(os.path.join(codebase, *paths))  # if path has multiple entries
+            return os.path.abspath(
+                os.path.join(codebase, *paths)
+            )  # if path has multiple entries
 
 
 def exception_hook(*exc_info):
@@ -198,14 +228,16 @@ def get_multiprocessing_config():
 
     """
     config = get_config()
-    parallel = config.getboolean('MultiThreading', 'parallel')
-    cores = config.getint('MultiThreading', 'cores')
+    parallel = config.getboolean("MultiThreading", "parallel")
+    cores = config.getint("MultiThreading", "cores")
     num_cpus = multiprocessing.cpu_count()
     cores = max(1, min(cores, num_cpus - 1))
     return parallel, cores
 
 
-def multi_threading(pool_fn, pool_args, disable_multiprocessing=False, dataframe_mode=False):
+def multi_threading(
+    pool_fn, pool_args, disable_multiprocessing=False, dataframe_mode=False
+):
     """
     Wrap multi threading for external c++ calls.
 
@@ -223,7 +255,11 @@ def multi_threading(pool_fn, pool_args, disable_multiprocessing=False, dataframe
     """
 
     parallel, cores = get_multiprocessing_config()
-    log.debug("Start with parallel={} and cores={}, queue size={}".format(parallel, cores, len(pool_args)))
+    log.debug(
+        "Start with parallel={} and cores={}, queue size={}".format(
+            parallel, cores, len(pool_args)
+        )
+    )
     if parallel and not disable_multiprocessing:
         threadpool = ThreadPool(cores)
         if dataframe_mode:
@@ -254,14 +290,26 @@ def memory_cache(func):
                 args_tuple = _keys_to_tuple(args, kwargs)
                 try:
                     res = self.cache[self.func.__name__, args_tuple]
-                    log.debug("+++ Using memory cacheed item for {} function +++ ".format(self.func.__name__))
+                    log.debug(
+                        "+++ Using memory cacheed item for {} function +++ ".format(
+                            self.func.__name__
+                        )
+                    )
                     return res
                 except KeyError:
-                    log.debug("--- Caching item for {} function in memory ---".format(self.func.__name__))
-                    self.cache[self.func.__name__, args_tuple] = res = self.func(*args, **kwargs)
+                    log.debug(
+                        "--- Caching item for {} function in memory ---".format(
+                            self.func.__name__
+                        )
+                    )
+                    self.cache[self.func.__name__, args_tuple] = res = self.func(
+                        *args, **kwargs
+                    )
                     return res
             except Exception as err:  # pylint: disable=broad-except
-                raise RuntimeError("Error calling cached function {} ".format(self.func.__name__), err)
+                raise RuntimeError(
+                    "Error calling cached function {} ".format(self.func.__name__), err
+                )
 
     return Memoise(func)
 

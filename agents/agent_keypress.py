@@ -13,7 +13,7 @@ class Player:
         self.last_action_in_stage = ""
         self.temp_stack = []
         self.name = name
-        self.autoplay = True
+        self.autoplay = True  # Set to True so it uses its own action() method
 
     def action(self, action_space, observation, info):
         """Mandatory method that calculates the move based on the observation array and the action space."""
