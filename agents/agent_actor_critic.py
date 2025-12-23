@@ -6,6 +6,7 @@ import tensorflow as tf
 from tensorflow import keras
 from collections import deque
 import random
+from gym_env.enums import Action
 
 log = logging.getLogger(__name__)
 
@@ -98,10 +99,13 @@ class ActorCriticNetwork:
         """Sample action from policy, respecting legal actions"""
         action_probs, _ = self.get_action_and_value(state)
 
+        # Convert legal_moves (list of Action enums) to action indices
+        legal_indices = [action.value for action in legal_actions]
+
         # Mask illegal actions
         legal_mask = np.zeros(len(action_probs))
-        for action in legal_actions:
-            legal_mask[action.value] = 1
+        for idx in legal_indices:
+            legal_mask[idx] = 1
 
         masked_probs = action_probs * legal_mask
         masked_probs = masked_probs / (masked_probs.sum() + 1e-8)
@@ -164,6 +168,7 @@ class Player:
         num_heads=4,
         num_layers=2,
         learning_rate=1e-4,
+        buffer_size=10000,
     ):
         """
         Initialize Actor-Critic agent.
@@ -176,6 +181,7 @@ class Player:
             num_heads: Number of attention heads
             num_layers: Number of transformer layers
             learning_rate: Learning rate
+            buffer_size: Size of experience replay buffer
         """
         self.name = name
         self.state_dim = state_dim
@@ -187,15 +193,13 @@ class Player:
             state_dim, action_dim, hidden_dim, num_heads, num_layers, learning_rate
         )
 
-        # Experience buffer
-        self.state_buffer = deque(maxlen=1000)
-        self.action_buffer = deque(maxlen=1000)
-        self.reward_buffer = deque(maxlen=1000)
-        self.next_state_buffer = deque(maxlen=1000)
-        self.done_buffer = deque(maxlen=1000)
-
-        # Trajectory collection
-        self.current_trajectory = []
+        # Experience replay buffer
+        self.buffer_size = buffer_size
+        self.state_buffer = deque(maxlen=buffer_size)
+        self.action_buffer = deque(maxlen=buffer_size)
+        self.reward_buffer = deque(maxlen=buffer_size)
+        self.next_state_buffer = deque(maxlen=buffer_size)
+        self.done_buffer = deque(maxlen=buffer_size)
 
     @property
     def buffer(self):
@@ -207,125 +211,42 @@ class Player:
         action_idx = self.network.get_action(observation, legal_moves)
         return action_idx
 
-    def store_transition(self, state, action, reward, next_state, done):
-        """Store transition in buffer"""
+    def store_experience(self, state, action, reward, next_state, done):
+        """Store experience in replay buffer"""
         self.state_buffer.append(state)
         self.action_buffer.append(action)
         self.reward_buffer.append(reward)
         self.next_state_buffer.append(next_state)
         self.done_buffer.append(done)
 
-    def collect_trajectory(self):
+    def process_env_experiences(self, env_experiences, player_id):
         """
-        Start collecting trajectory for this episode.
-        Call this at the start of each episode.
-        """
-        self.current_trajectory = []
-
-    def record_transition(self, state, action, reward, next_state, done):
-        """
-        Record a single transition during the episode.
+        Process experiences from environment for this player.
 
         Args:
-            state: Current state
-            action: Action taken
-            reward: Immediate reward (can be 0 for intermediate steps)
-            next_state: Resulting state
-            done: Whether episode ended
+            env_experiences: Dictionary from env.get_player_experiences()
+            player_id: This player's ID
         """
-        self.current_trajectory.append(
-            {
-                "state": state,
-                "action": action,
-                "reward": reward,
-                "next_state": next_state,
-                "done": done,
-            }
-        )
-
-    def process_trajectory(self, terminal_reward=0, gamma=0.99):
-        """
-        Process trajectory and store transitions with computed returns.
-
-        This handles the case where an agent takes multiple actions during a hand
-        and receives a single terminal reward at the end.
-
-        The key insight: we work backwards from the terminal reward to compute
-        the discounted return (G_t) for each step:
-
-        G_t = r_t + gamma * G_{t+1}
-        G_T = terminal_reward (at the end)
-
-        Args:
-            terminal_reward: Final reward received at end of episode
-            gamma: Discount factor
-        """
-        if not hasattr(self, "current_trajectory") or not self.current_trajectory:
+        if player_id not in env_experiences:
             return
 
-        # Work backwards from terminal reward
-        # For the last step, the return is the immediate reward + terminal reward
-        trajectory = self.current_trajectory
-        returns = [0] * len(trajectory)
+        player_exps = env_experiences[player_id]
 
-        # Initialize return at the end
-        G = terminal_reward
-
-        # Work backwards through trajectory
-        for t in range(len(trajectory) - 1, -1, -1):
-            # G_t = r_t + gamma * G_{t+1}
-            G = trajectory[t]["reward"] + gamma * G
-            returns[t] = G
-
-        # Store all transitions with computed returns
-        for t, trans in enumerate(trajectory):
-            # Use computed return as the reward
-            self.store_transition(
-                state=trans["state"],
-                action=trans["action"],
-                reward=returns[t],  # Use computed return, not immediate reward
-                next_state=trans["next_state"],
-                done=trans["done"],
+        # Store each experience in replay buffer
+        for exp in player_exps:
+            self.store_experience(
+                state=exp["state"],
+                action=exp["action"],
+                reward=exp["reward"],
+                next_state=exp["next_state"],
+                done=exp["done"],
             )
 
-        # Clear trajectory
-        self.current_trajectory = []
-
-    def process_trajectory_bootstrap(self, terminal_value=0, gamma=0.99):
-        """
-        Alternative: use bootstrapping with final state value.
-
-        Instead of using terminal reward, use the critic's estimate of the
-        final state value. This is better when the hand doesn't always end
-        with explicit terminal rewards.
-
-        Args:
-            terminal_value: Critic's estimate of final state value
-            gamma: Discount factor
-        """
-        if not hasattr(self, "current_trajectory") or not self.current_trajectory:
-            return
-
-        trajectory = self.current_trajectory
-
-        # Work backwards with bootstrapping
-        G = terminal_value
-
-        for t in range(len(trajectory) - 1, -1, -1):
-            G = trajectory[t]["reward"] + gamma * G
-
-            self.store_transition(
-                state=trajectory[t]["state"],
-                action=trajectory[t]["action"],
-                reward=G,
-                next_state=trajectory[t]["next_state"],
-                done=trajectory[t]["done"],
-            )
-
-        self.current_trajectory = []
+        # Train on a batch from replay buffer
+        self.train_on_batch()
 
     def train_on_batch(self, batch_size=32, gamma=0.99):
-        """Train network on batch of experiences"""
+        """Train network on batch of experiences from replay buffer"""
         if len(self.state_buffer) < batch_size:
             return None, None
 

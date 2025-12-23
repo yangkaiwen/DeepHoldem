@@ -196,6 +196,42 @@ class SelfPlay:
             self.env.unwrapped.reset()
             self.env.unwrapped.run()
 
+            # Get and output player experiences
+            # player_experiences = self.env.unwrapped.get_player_experiences()
+
+            # print("\n" + "=" * 80)
+            # print(f"PLAYER EXPERIENCES - EPISODE {episode + 1}")
+            # print("=" * 80)
+
+            # for player_id, experiences in player_experiences.items():
+            #     player = self.env.unwrapped.players[player_id]
+            #     print(
+            #         f"\nPlayer {player_id} ({player.name}) - {len(experiences)} experiences:"
+            #     )
+            #     print("-" * 80)
+
+            #     for exp_idx, exp in enumerate(experiences):
+            #         print(f"\n  Experience {exp_idx + 1}:")
+            #         print(
+            #             f"    State shape: {exp['state'].shape if exp['state'] is not None else 'None'}"
+            #         )
+            #         print(f"    Action: {exp['action']}")
+            #         print(f"    Reward: {exp['reward']:.4f}")
+            #         print(
+            #             f"    Next state shape: {exp['next_state'].shape if exp['next_state'] is not None else 'None'}"
+            #         )
+            #         print(f"    Done: {exp['done']}")
+
+            # Output terminal rewards
+            # terminal_rewards = self.env.unwrapped.get_terminal_rewards()
+            # print("\n" + "=" * 80)
+            # print("TERMINAL REWARDS:")
+            # print("-" * 80)
+            # for player_id, reward in enumerate(terminal_rewards):
+            #     player = self.env.unwrapped.players[player_id]
+            #     print(f"Player {player_id} ({player.name}): {reward:.4f}")
+            # print("=" * 80 + "\n")
+
     def equity_vs_random(self):
         """Create 6 players, 4 of them equity based, 2 of them random"""
         from agents.agent_consider_equity import Player as EquityPlayer

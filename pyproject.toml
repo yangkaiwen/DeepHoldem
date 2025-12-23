@@ -19,7 +19,8 @@ dependencies = [
     "setuptools>=80.9.0",
     "numpy>=1.18.0,<2.0",  # Pinned for Gymnasium compatibility
     "cloudpickle>=1.2.0",
-    "shimmy>=0.2.1"  # For Gym->Gymnasium compatibility
+    "shimmy>=0.2.1",  # For Gym->Gymnasium compatibility
+    "torch>=2.0.0",  # For deep learning models
 ]
 
 [project.scripts]
@@ -44,9 +45,4 @@ packages = ["."]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[dependency-groups]
-dev = [
-    "pylint>=3.1.0",
-    "pytest>=8.1.1",
-    "pytest-xdist>=3.8.0",
-]
+

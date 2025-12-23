@@ -33,7 +33,6 @@ class PlayerCycle:
         self.out_of_cash_but_contributed = [False] * len(self.lst)
         self.folder = [False] * len(self.lst)
         self.checkers = 0
-        self.preflop_no_raise = True  # Track if preflop had no raises
 
         # Track contributions for unified rule checking
         self.player_contributions = [0] * len(self.lst)
@@ -92,7 +91,6 @@ class PlayerCycle:
         # UNIFIED RULE CHECKING
         # Check if betting round should end
         if self._should_end_betting_round():
-            log.debug("Betting round should end based on unified rules")
             return False
 
         self.idx += step
