@@ -31,7 +31,6 @@ class StateHistoryRecorder:
             model_name: Name of the transformer model to use
         """
         self.ledger = ""  # word representation of the game history and decision to make
-        self.encode = []  # numeric representation for NN input
 
     def record(self, message):
         """
@@ -51,21 +50,6 @@ class StateHistoryRecorder:
         self.encode = []
 
 
-class CommunityData:
-    """Data available to everybody"""
-
-    def __init__(self, num_players):
-        """data"""
-        self.current_player_position = [False] * num_players  # ix[0] = dealer
-        self.stage = [False] * 4  # one hot: preflop, flop, turn, river
-        self.community_pot = None
-        self.current_round_pot = None
-        self.active_players = [False] * num_players  # one hot encoded, 0 = dealer
-        self.big_blind = 0
-        self.small_blind = 0
-        self.legal_moves = [0 for action in Action]
-
-
 class StageData:
     """Preflop, flop, turn and river"""
 
@@ -79,18 +63,6 @@ class StageData:
         self.community_pot_at_action = [0] * num_players  # ix[0] = dealer
 
 
-class PlayerData:
-    "Player specific information"
-
-    def __init__(self):
-        """data"""
-        self.position = None
-        self.equity_to_river_alive = 0
-        self.equity_to_river_2plr = 0
-        self.equity_to_river_3plr = 0
-        self.stack = None
-
-
 class HoldemTable(Env):
     """Pokergame environment"""
 
@@ -99,11 +71,6 @@ class HoldemTable(Env):
         initial_stacks=100,
         small_blind=1,
         big_blind=2,
-        funds_plot=False,  # Changed default to False for single hands
-        use_cpp_montecarlo=False,
-        raise_illegal_moves=False,
-        calculate_equity=False,
-        render=False,  # Add render parameter for compatibility
     ):
         """
         The table needs to be initialized once at the beginning
@@ -116,18 +83,10 @@ class HoldemTable(Env):
             funds_plot (bool): show plot of funds history at end of each episode
 
         """
-        if use_cpp_montecarlo:
-            import cppimport
-
-            calculator = cppimport.imp("tools.montecarlo_cpp.pymontecarlo")
-            get_equity = calculator.montecarlo
-        else:
-            from tools.montecarlo_python import get_equity
-        self.get_equity = get_equity
-        self.use_cpp_montecarlo = use_cpp_montecarlo
         self.num_of_players = 0
         self.small_blind = small_blind
         self.big_blind = big_blind
+        self.bb_pos = None  # Track big blind player position
         self.players = []
         self.table_cards = None
         self.dealer_pos = None
@@ -154,8 +113,6 @@ class HoldemTable(Env):
         self.winner_ix = None
         self.initial_stacks = initial_stacks
         self.acting_agent = None
-        self.funds_plot = funds_plot
-        self.calculate_equity = calculate_equity
 
         # pots
         self.community_pot = 0
@@ -180,8 +137,6 @@ class HoldemTable(Env):
         )
         self.first_action_for_hand = None
 
-        self.raise_illegal_moves = raise_illegal_moves
-
         # Track starting stacks for each hand
         self.starting_stacks = initial_stacks
 
@@ -203,9 +158,10 @@ class HoldemTable(Env):
         self.player_rewards = {}
         self.player_dones = {}
 
-        # Initialize state history encoder
-        self.ledger = ""
-        self.encode = []
+        self.ledger = ""  # word representation of the game history and decision to make
+        self.PARSD = (
+            []
+        )  # a growing list encoding the Player, Action, Reward, Stack, Done
 
     def reset(self, seed=None, options=None):
         """Reset after game over - now resets to a new hand.
@@ -258,9 +214,9 @@ class HoldemTable(Env):
             self.dealer_pos = options["dealer_pos"]
             self.dealer_pos_override = True
             log.info(f"Dealer position set to seat {self.dealer_pos}")
-            self.state_history_encoder.record(
-                f"Dealer position set to seat {self.dealer_pos}"
-            )
+            # self.state_history_encoder.record(
+            #     f"Dealer position set to seat {self.dealer_pos}"
+            # )
         else:
             self.dealer_pos = 0
             self.dealer_pos_override = False
@@ -269,15 +225,6 @@ class HoldemTable(Env):
             dealer_idx=-1,
         )
         self._start_new_hand()
-        self._get_environment()
-
-        # Set observation space based on actual observation shape
-        from gymnasium.spaces import Box
-
-        obs_shape = self.observation.shape
-        self.observation_space = Box(
-            low=-np.inf, high=np.inf, shape=obs_shape, dtype=np.float32
-        )
 
     def step(self, action):  # pylint: disable=arguments-differ
         """
@@ -292,9 +239,7 @@ class HoldemTable(Env):
         self.acting_agent = self.player_cycle.idx
 
         # observation that drove to the action
-        obs_before_action = (
-            self.observation.copy() if self.observation is not None else None
-        )
+        obs_before_action = self.observation if self.observation is not None else None
 
         # Validate and execute the action
         if Action(action) not in self.legal_moves:
@@ -320,6 +265,17 @@ class HoldemTable(Env):
             self.player_rewards[self.acting_agent].append(self.reward)
             self.player_dones[self.acting_agent].append(self.done)
 
+            # Store in PARSD: [Player Seat, Action Index, Reward, All Player Stacks..., Done]
+            self.PARSD.extend(
+                [
+                    self.players[self.acting_agent].seat,
+                    action.value if isinstance(action, Action) else action,
+                    self.reward,
+                    *[int(player.stack) for player in self.players],
+                    1 if self.done else 0,
+                ]
+            )
+
         return self.observation, self.reward, self.done, False, self.info
 
     def run(self, action=None):
@@ -333,18 +289,17 @@ class HoldemTable(Env):
             self._get_legal_moves()
 
             msg = f"legal moves: {[a.name for a in self.legal_moves]}"
-            self.state_history_encoder.record(msg)
-
+            # self.state_history_encoder.record(msg)
             self._get_environment()
             action = self.current_player.agent_obj.action(
                 self.legal_moves, self.observation, self.info
             )
 
             msg = f"Player (seat {self.current_player.seat}) chose action: {action}"
-            self.state_history_encoder.record(msg)
-            self.state_history_encoder.record_triplet(
-                self.current_player.seat, action.value, self.reward
-            )
+            # self.state_history_encoder.record(msg)
+            # self.state_history_encoder.record_triplet(
+            #     self.current_player.seat, action.value, self.reward
+            # )
 
             # Process the action
             observation, reward, done, truncated, info = self.step(action)
@@ -353,16 +308,19 @@ class HoldemTable(Env):
             self._next_player()
 
             # Only update environment if there's a valid current player
-            if self.current_player:
-                self._get_environment()
+            # if self.current_player:
+            #     self._get_environment()
 
             # Check if game should end (happens after next_player triggers stage change)
-            if self.stage in [Stage.END_HIDDEN, Stage.SHOWDOWN]:
+            if self.stage in [
+                Stage.END_HIDDEN,
+                Stage.SHOWDOWN,
+            ]:
                 self._end_hand()
                 self.done = True
                 self._calculate_terminal_rewards()
-                self._store_terminal_observation()
                 self._print_hand_results()
+                self._store_terminal_observation()
 
     def _execute_step(self, action):
         """Process a single decision action. Does NOT handle game flow."""
@@ -373,13 +331,9 @@ class HoldemTable(Env):
             self._calculate_reward(action)
 
     def _illegal_move(self, action):
-        log.warning(
+        log.info(
             f"{action} is an Illegal move, try again. Currently allowed: {self.legal_moves}"
         )
-        if self.raise_illegal_moves:
-            raise ValueError(
-                f"{action} is an Illegal move, try again. Currently allowed: {self.legal_moves}"
-            )
         self.reward = self.illegal_move_reward
 
     def _print_hand_results(self):
@@ -404,43 +358,83 @@ class HoldemTable(Env):
         # Print current game state information
         stacks_vector = np.array([player.stack for player in self.players])
         print("\n" + "=" * 60)
-        print(f"CURRENT PLAYER: Seat {self.current_player.seat}")
-        print(f"Hand: {self.current_player.cards}")
+        if self.current_player:
+            print(f"CURRENT PLAYER: Seat {self.current_player.seat}")
+            print(f"Hand: {self.current_player.cards}")
+        print(self.current_player)
         print(f"Community Cards: {self.table_cards}")
         print(f"Player Stacks: {stacks_vector}")
         print(f"Callers: {self.callers}")
         print(f"Raisers: {self.raisers}")
 
-        self.observation = encoded_game_observation
+        # Compile observation (state) vector
+        obs_components = []
+
+        # Player cards - always 2 cards, pad with 0 if needed
+        player_cards = [0, 0]
+        if (
+            self.current_player
+            and self.current_player.cards
+            and len(self.current_player.cards) == 2
+        ):
+            encoded = self.encode_card(self.current_player.cards)
+            if isinstance(encoded, np.ndarray):
+                player_cards = encoded.tolist()
+            else:
+                player_cards = [encoded, 0]
+        obs_components.extend(player_cards)
+
+        # Table cards - always 5 cards, pad with 0s
+        community_cards = [0, 0, 0, 0, 0]
+        if self.table_cards:
+            encoded = self.encode_card(self.table_cards)
+            if isinstance(encoded, np.ndarray):
+                encoded = encoded.tolist()
+            else:
+                encoded = [encoded]
+            for i, card in enumerate(encoded[:5]):
+                community_cards[i] = card
+        obs_components.extend(community_cards)
+
+        # Game state features
+        obs_components.append(self.stage.value)  # Current stage as integer
+        obs_components.append(sum(self.player_cycle.alive))  # Number of active players
+        obs_components.append(len(self.callers))  # Number of players called
+        obs_components.append(len(self.raisers))  # Number of players raised
+        obs_components.append(self.bb_pos)
+
+        # Player-specific features for each player
+        for i, player in enumerate(self.players):
+            # 1. Is player active (1 if in alive list, 0 otherwise)
+            is_active = 1 if self.player_cycle.alive[i] else 0
+
+            # 2. Did player raise in this round (1 if in raisers, 0 otherwise)
+            did_raise = 1 if player.seat in self.raisers else 0
+
+            # 3. Amount of money invested in this hand (initial - current)
+            money_invested = self.hand_starting_stacks[i] - player.stack
+
+            # 4. Is this the current player (1 if current, 0 otherwise)
+            is_current = (
+                1
+                if self.current_player and self.current_player.seat == player.seat
+                else 0
+            )
+
+            # 5. Is this player the big blind (1 if BB, 0 otherwise)
+            is_bb = 1 if player.seat == self.bb_pos else 0
+
+            obs_components.extend(
+                [is_active, did_raise, money_invested, is_current, is_bb]
+            )
+
+        # Append PARSD
+        obs_components.extend(self.PARSD)
+
+        self.observation = np.array(obs_components, dtype=np.float32)
 
         # Initialize info dict with basic game state
-        self.info = {
-            "player_data": {
-                "position": self.current_player.seat,
-                "stack": [
-                    player.stack for player in self.players
-                ],  # All player stacks as list
-            },
-            "community_data": {
-                "stage": self.stage.name if self.stage else None,
-                "community_cards": self.table_cards,
-                "community_pot": self.community_pot,
-                "min_call": self.min_call,
-            },
-            "game_data": {
-                "callers": self.callers,
-                "raisers": self.raisers,
-                "num_players": len(self.players),
-            },
-        }
-
-        self._print_environment_state()
-
-    def _print_environment_state(self):
-        """Print player_data, community_data, and stage_data nicely"""
-        print(self.state_history_encoder.get_text())
-        print(self.state_history_encoder.triplets)
-        print("=" * 60 + "\n")
+        self.info = {}
 
     def _calculate_reward(self, last_action):
         """
@@ -471,7 +465,7 @@ class HoldemTable(Env):
 
         msg = f"Agent (seat {i}) incremental reward calculation: current_stack={current_stack:.2f}, previous_stack={previous_stack:.2f}, reward={self.reward:.2f}"
         log.info(msg)
-        self.state_history_encoder.record(msg)
+        # self.state_history_encoder.record(msg)
 
     def _calculate_terminal_rewards(self):
         """
@@ -725,15 +719,13 @@ class HoldemTable(Env):
             f"last_raise_amount: {self.last_raise_amount}"
         )
         log.info(msg)
-        self.state_history_encoder.record(msg)
+        # self.state_history_encoder.record(msg)
 
     def _start_new_hand(self):
         """Deal new cards to players and reset table states."""
-        self._save_funds_history()
-
         log.info("++++++++++++++++++")
         msg = "Starting new hand."
-        self.state_history_encoder.record(msg)
+        # self.state_history_encoder.record(msg)
         log.info(msg)
         log.info("++++++++++++++++++")
         self.table_cards = []
@@ -762,17 +754,8 @@ class HoldemTable(Env):
             }
 
         self._next_dealer()
-
         self._distribute_cards()
         self._initiate_round()
-
-    def _save_funds_history(self):
-        """Keep track of player funds history"""
-        if not self.done:  # Only save if hand is still in progress
-            funds_dict = {i: player.stack for i, player in enumerate(self.players)}
-            self.funds_history = pd.concat(
-                [self.funds_history, pd.DataFrame(funds_dict, index=[0])]
-            )
 
     def _check_game_over(self):
         """Check if hand is over - simplified for single hand episodes"""
@@ -784,16 +767,6 @@ class HoldemTable(Env):
         """End of an episode."""
         log.info("Hand over.")
         self.done = True
-
-        # Only show funds plot if enabled
-        if self.funds_plot and len(self.funds_history) > 0:
-            player_names = [
-                f"{i} - {player.name}" for i, player in enumerate(self.players)
-            ]
-            self.funds_history.columns = player_names
-            self.funds_history.reset_index(drop=True).plot()
-            plt.show()
-
         log.info(f"Hand completed. Winner: Player {self.winner_ix}")
 
     def _initiate_round(self):
@@ -818,7 +791,7 @@ class HoldemTable(Env):
         if self.stage == Stage.PREFLOP:
             log.info("")
             log.info("===Round: Stage: PREFLOP")
-            self.state_history_encoder.record("===Round: Stage: PREFLOP")
+            # self.state_history_encoder.record("===Round: Stage: PREFLOP")
 
             self._next_player()
             # Skip players with $0 stack when posting blinds
@@ -836,6 +809,8 @@ class HoldemTable(Env):
                     f"Player {self.current_player.seat} has $0 stack, skipping big blind"
                 )
                 self._next_player()
+            # Set bb_pos to current player's seat
+            self.bb_pos = self.current_player.seat
             self._process_decision(Action.BIG_BLIND)
 
             self._next_player()
@@ -905,24 +880,20 @@ class HoldemTable(Env):
             self.stage = Stage.FLOP
             self._distribute_cards_to_table(3)
             log.info("--- FLOP ---")
-            self.state_history_encoder.record("--- FLOP ---")
         elif self.stage == Stage.FLOP:
             self.stage = Stage.TURN
             self._distribute_cards_to_table(1)
             log.info("--- TURN ---")
-            self.state_history_encoder.record("--- TURN ---")
         elif self.stage == Stage.TURN:
             self.stage = Stage.RIVER
             self._distribute_cards_to_table(1)
             log.info("--- RIVER ---")
-            self.state_history_encoder.record("--- RIVER ---")
         elif self.stage == Stage.RIVER:
             self.stage = Stage.SHOWDOWN
             log.info("--- SHOWDOWN ---")
-            self.state_history_encoder.record("--- SHOWDOWN ---")
         msg = f"===ROUND: {self.stage} ==="
         log.info(msg)
-        self.state_history_encoder.record(msg)
+        # self.state_history_encoder.record(msg)
         self._clean_up_pots()
 
     def _clean_up_pots(self):
@@ -940,7 +911,7 @@ class HoldemTable(Env):
         """Store terminal observation (same for all players)"""
         # Get observation from environment's current state
         self._get_environment()  # This updates self.observation
-        self.terminal_observation = self.observation.copy()
+        self.terminal_observation = self.observation
 
         # Also record this as the last observation for all players who have any observations
         for player_id in range(len(self.players)):
@@ -1093,7 +1064,7 @@ class HoldemTable(Env):
         self.winner_ix = winner_ix
         if total_winnings < sum(self.player_max_win):
             log.info("Returning side pots")
-            self.state_history_encoder.record("Returning side pots")
+            # self.state_history_encoder.record("Returning side pots")
             for i, player in enumerate(self.players):
                 player.stack += remains[i]
 
@@ -1139,7 +1110,7 @@ class HoldemTable(Env):
             else:
                 msg = "Betting round complete."
                 log.info(msg)
-                self.state_history_encoder.record(msg)
+                # self.state_history_encoder.record(msg)
                 self._end_round()
                 # Only initiate new round if we're not at showdown
                 if self.stage != Stage.SHOWDOWN:
@@ -1220,7 +1191,7 @@ class HoldemTable(Env):
             f"Min call: {self.min_call}"
         )
         log.info(msg)
-        self.state_history_encoder.record(msg)
+        # self.state_history_encoder.record(msg)
 
         for i, pot in enumerate(self.player_pots):
             if pot > 0:
@@ -1316,7 +1287,7 @@ class HoldemTable(Env):
             card = np.random.randint(0, len(self.deck))
             self.table_cards.append(self.deck.pop(card))
         msg = f"Cards on table: {self.table_cards}"
-        self.state_history_encoder.record(msg)
+        # self.state_history_encoder.record(msg)
         log.info(msg)
 
 

@@ -27,16 +27,7 @@ dependencies = [
 # Main game modes
 poker-random = "scripts:main_random"
 poker-keypress = "scripts:main_keypress" 
-poker-equity = "scripts:main_equity"
-poker-equity-improvement = "scripts:main_equity_improvement"
-poker-dqn-train = "scripts:main_dqn_train"
-poker-dqn-play = "scripts:main_dqn_play"
 
-# Convenience scripts with common options
-poker-random-render = "scripts:main_random_render"
-poker-keypress-render = "scripts:main_keypress_render"
-poker-equity-render = "scripts:main_equity_render"
-poker-dqn-train-cpp = "scripts:main_dqn_train_cpp"
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]
