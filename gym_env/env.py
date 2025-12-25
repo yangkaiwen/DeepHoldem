@@ -3,9 +3,6 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import gymnasium as gym
-from gymnasium import Env
-from gymnasium.spaces import Discrete
 
 from gym_env.cycle import PlayerCycle
 from gym_env.enums import Action, Stage
@@ -63,7 +60,7 @@ class StageData:
         self.community_pot_at_action = [0] * num_players  # ix[0] = dealer
 
 
-class HoldemTable(Env):
+class HoldemTable:
     """Pokergame environment"""
 
     def __init__(
@@ -80,7 +77,6 @@ class HoldemTable(Env):
             initial_stacks (real): initial stacks per player
             small_blind (real)
             big_blind (real)
-            funds_plot (bool): show plot of funds history at end of each episode
 
         """
         self.num_of_players = 0
@@ -127,14 +123,6 @@ class HoldemTable(Env):
         self.array_everything = None
         self.legal_moves = None
         self.illegal_move_reward = -10
-        self.action_space = Discrete(len(Action) - 2)
-        # Define observation space with a placeholder shape
-        from gymnasium.spaces import Box
-
-        # We'll use a placeholder shape - actual shape will be determined in reset()
-        self.observation_space = Box(
-            low=-np.inf, high=np.inf, shape=(124,), dtype=np.float32
-        )
         self.first_action_for_hand = None
 
         # Track starting stacks for each hand
@@ -159,7 +147,7 @@ class HoldemTable(Env):
         self.player_dones = {}
 
         self.ledger = ""  # word representation of the game history and decision to make
-        self.PARSD = (
+        self.PARD = (
             []
         )  # a growing list encoding the Player, Action, Reward, Stack, Done
 
@@ -170,14 +158,15 @@ class HoldemTable(Env):
             seed: Random seed for reproducibility
             options: Optional dict with:
                 - dealer_pos (int): Override dealer position (0 to num_players-1)
+                - stacks (list): List of initial stacks for each player
         """
-        super().reset(seed=seed)
+        if seed is not None:
+            np.random.seed(seed)
 
         self.observation = None
         self.reward = None
         self.info = None
         self.done = False
-        self.funds_history = pd.DataFrame()
         self.first_action_for_hand = [True] * len(self.players)
 
         # Reset experience tracking
@@ -200,8 +189,15 @@ class HoldemTable(Env):
             return self.observation, self.info
 
         # Reset stacks to initial amount for each hand
-        for player in self.players:
-            player.stack = self.initial_stacks
+        if options and "stacks" in options:
+            for i, player in enumerate(self.players):
+                if i < len(options["stacks"]):
+                    player.stack = options["stacks"][i]
+                else:
+                    player.stack = self.initial_stacks
+        else:
+            for player in self.players:
+                player.stack = self.initial_stacks
 
         # Track starting stacks for this hand
         self.hand_starting_stacks = [player.stack for player in self.players]
@@ -244,6 +240,11 @@ class HoldemTable(Env):
         # Validate and execute the action
         if Action(action) not in self.legal_moves:
             self._illegal_move(action)
+            if Action.CHECK in self.legal_moves:
+                self._execute_step(Action.CHECK)
+            else:
+                self._execute_step(Action.FOLD)
+
         else:
             self._execute_step(Action(action))
 
@@ -265,18 +266,17 @@ class HoldemTable(Env):
             self.player_rewards[self.acting_agent].append(self.reward)
             self.player_dones[self.acting_agent].append(self.done)
 
-            # Store in PARSD: [Player Seat, Action Index, Reward, All Player Stacks..., Done]
-            self.PARSD.extend(
+            # Store in PARD: [Player Seat, Action Index, Reward, Done]
+            self.PARD.extend(
                 [
                     self.players[self.acting_agent].seat,
                     action.value if isinstance(action, Action) else action,
-                    self.reward,
-                    *[int(player.stack) for player in self.players],
+                    self.reward / (self.big_blind * 100),
                     1 if self.done else 0,
                 ]
             )
 
-        return self.observation, self.reward, self.done, False, self.info
+        return self.observation, self.reward, self.done, self.info
 
     def run(self, action=None):
         """
@@ -302,7 +302,11 @@ class HoldemTable(Env):
             # )
 
             # Process the action
-            observation, reward, done, truncated, info = self.step(action)
+            observation, reward, done, info = self.step(action)
+
+            # Record reward for the agent if it has the method (ACAgent)
+            if hasattr(self.current_player.agent_obj, "record_reward"):
+                self.current_player.agent_obj.record_reward(reward)
 
             # Advance to next player
             self._next_player()
@@ -355,23 +359,23 @@ class HoldemTable(Env):
     def _get_environment(self):
         """Observe the environment"""
 
-        # Print current game state information
-        stacks_vector = np.array([player.stack for player in self.players])
-        print("\n" + "=" * 60)
-        if self.current_player:
-            print(f"CURRENT PLAYER: Seat {self.current_player.seat}")
-            print(f"Hand: {self.current_player.cards}")
-        print(self.current_player)
-        print(f"Community Cards: {self.table_cards}")
-        print(f"Player Stacks: {stacks_vector}")
-        print(f"Callers: {self.callers}")
-        print(f"Raisers: {self.raisers}")
+        # # Print current game state information
+        # stacks_vector = np.array([player.stack for player in self.players])
+        # print("\n" + "=" * 60)
+        # if self.current_player:
+        #     print(f"CURRENT PLAYER: Seat {self.current_player.seat}")
+        #     print(f"Hand: {self.current_player.cards}")
+        # print(self.current_player)
+        # print(f"Community Cards: {self.table_cards}")
+        # print(f"Player Stacks: {stacks_vector}")
+        # print(f"Callers: {self.callers}")
+        # print(f"Raisers: {self.raisers}")
 
         # Compile observation (state) vector
         obs_components = []
 
-        # Player cards - always 2 cards, pad with 0 if needed
-        player_cards = [0, 0]
+        # Player cards - always 2 cards, pad with -1 if needed
+        player_cards = [-1, -1]
         if (
             self.current_player
             and self.current_player.cards
@@ -384,8 +388,8 @@ class HoldemTable(Env):
                 player_cards = [encoded, 0]
         obs_components.extend(player_cards)
 
-        # Table cards - always 5 cards, pad with 0s
-        community_cards = [0, 0, 0, 0, 0]
+        # Table cards - always 5 cards, pad with -1s
+        community_cards = [-1, -1, -1, -1, -1]
         if self.table_cards:
             encoded = self.encode_card(self.table_cards)
             if isinstance(encoded, np.ndarray):
@@ -397,44 +401,80 @@ class HoldemTable(Env):
         obs_components.extend(community_cards)
 
         # Game state features
+        obs_components.append(len(self.players))  # Number of players
+        obs_components.append(
+            self.community_pot / (self.big_blind * 100)
+        )  # Current community pot
         obs_components.append(self.stage.value)  # Current stage as integer
         obs_components.append(sum(self.player_cycle.alive))  # Number of active players
         obs_components.append(len(self.callers))  # Number of players called
         obs_components.append(len(self.raisers))  # Number of players raised
         obs_components.append(self.bb_pos)
 
-        # Player-specific features for each player
-        for i, player in enumerate(self.players):
-            # 1. Is player active (1 if in alive list, 0 otherwise)
-            is_active = 1 if self.player_cycle.alive[i] else 0
+        # Player-specific features for each player (Fixed to 10 players)
+        MAX_PLAYERS = 10
+        for i in range(MAX_PLAYERS):
+            if i < len(self.players):
+                player = self.players[i]
+                # 1. Is player active (1 if in alive list, 0 otherwise)
+                is_active = 1 if self.player_cycle.alive[i] else 0
 
-            # 2. Did player raise in this round (1 if in raisers, 0 otherwise)
-            did_raise = 1 if player.seat in self.raisers else 0
+                # 2. Did player raise in this round (1 if in raisers, 0 otherwise)
+                did_raise = 1 if player.seat in self.raisers else 0
 
-            # 3. Amount of money invested in this hand (initial - current)
-            money_invested = self.hand_starting_stacks[i] - player.stack
+                # 3. Amount of money invested in this hand (initial - current)
+                money_invested = (self.hand_starting_stacks[i] - player.stack) / (
+                    self.big_blind * 100
+                )
 
-            # 4. Is this the current player (1 if current, 0 otherwise)
-            is_current = (
-                1
-                if self.current_player and self.current_player.seat == player.seat
-                else 0
-            )
+                # 4. Current player stack not invested
+                current_stack = player.stack / (self.big_blind * 100)
 
-            # 5. Is this player the big blind (1 if BB, 0 otherwise)
-            is_bb = 1 if player.seat == self.bb_pos else 0
+                # 4. Is this the current player (1 if current, 0 otherwise)
+                is_current = (
+                    1
+                    if self.current_player and self.current_player.seat == player.seat
+                    else 0
+                )
 
-            obs_components.extend(
-                [is_active, did_raise, money_invested, is_current, is_bb]
-            )
+                # 5. Is this player the big blind (1 if BB, 0 otherwise)
+                is_bb = 1 if player.seat == self.bb_pos else 0
 
-        # Append PARSD
-        obs_components.extend(self.PARSD)
+                obs_components.extend(
+                    [
+                        is_active,
+                        did_raise,
+                        money_invested,
+                        current_stack,
+                        is_current,
+                        is_bb,
+                    ]
+                )
+            else:
+                # Pad with zeros for missing players
+                obs_components.extend([0, 0, 0, 0, 0, 0])
 
+        # Append PARD
+        obs_components.extend(self.PARD)
+        # print(
+        #     "=========================    collecting observation    =============================="
+        # )
         self.observation = np.array(obs_components, dtype=np.float32)
-
+        # print(
+        #     f"Observation vector (length {len(self.observation)}): {self.observation}"
+        # )
+        # print(
+        #     "========================================================================================"
+        # )
         # Initialize info dict with basic game state
-        self.info = {}
+        self.info = {
+            "player_data": {
+                "position": (
+                    self.current_player.seat if self.current_player else "Unknown"
+                ),
+                "stack": [player.stack for player in self.players],
+            }
+        }
 
     def _calculate_reward(self, last_action):
         """

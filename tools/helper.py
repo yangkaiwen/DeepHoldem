@@ -79,8 +79,22 @@ class CustomConfigParser(metaclass=Singleton):
 
 def get_config():
     """Public accessor for config file."""
-    config = CustomConfigParser(os.path.join(get_dir("codebase"), "config.ini"))
-    return config.config
+
+    # Return a dummy config object or dictionary if needed,
+    # but ideally we remove calls to this entirely.
+    # For now, returning a simple dict-like object to prevent immediate crashes
+    # if something still calls it.
+    class DummyConfig:
+        def get(self, section, key):
+            return None
+
+        def getboolean(self, section, key):
+            return False
+
+        def getint(self, section, key):
+            return 1
+
+    return DummyConfig()
 
 
 def init_logger(screenlevel, filename=None, logdir=None, modulename=""):
@@ -181,22 +195,10 @@ def get_dir(*paths):
     if paths[0] == "codebase":  # pylint: disable=no-else-return
         return codebase
     else:
-        # check if entry in config.ini
-        try:
-            config = get_config()
-            specified_path = config.get("Files", paths[0])
-            if len(paths) > 1:
-                specified_path = os.path.join(specified_path, *paths[1:])
-            thirdparty_dir = config.get("Thirdparty", "thirdparty_dir")
-            full_path = os.path.abspath(
-                os.path.join(codebase, thirdparty_dir, specified_path)
-            )
-            return full_path
-        except:  # pylint: disable=bare-except
-            # otherwise just return absolute path in codebase
-            return os.path.abspath(
-                os.path.join(codebase, *paths)
-            )  # if path has multiple entries
+        # otherwise just return absolute path in codebase
+        return os.path.abspath(
+            os.path.join(codebase, *paths)
+        )  # if path has multiple entries
 
 
 def exception_hook(*exc_info):
@@ -227,9 +229,8 @@ def get_multiprocessing_config():
         cores (int): Amount of cores to use
 
     """
-    config = get_config()
-    parallel = config.getboolean("MultiThreading", "parallel")
-    cores = config.getint("MultiThreading", "cores")
+    parallel = False
+    cores = 1
     num_cpus = multiprocessing.cpu_count()
     cores = max(1, min(cores, num_cpus - 1))
     return parallel, cores

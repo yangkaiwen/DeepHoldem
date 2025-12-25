@@ -3,7 +3,7 @@
 from gym_env.enums import Action
 
 
-class Player:
+class KeypressAgent:
     """Mandatory class with the player methods"""
 
     def __init__(self, name="Keypress"):
