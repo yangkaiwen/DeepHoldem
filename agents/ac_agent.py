@@ -8,7 +8,7 @@ import torch.optim as optim
 from collections import deque, defaultdict
 import os
 
-from network import DynamicPokerNetwork
+from agents.network import DynamicPokerNetwork
 from gym_env.enums import Action
 
 

@@ -126,10 +126,20 @@ class DynamicPokerNetwork(nn.Module):
         # Handle sequences with packing
         seq_lengths = action_mask.sum(dim=1).cpu()
 
-        if seq_lengths.sum() > 0:
+        # Initialize action_features with zeros
+        action_features = torch.zeros(batch_size, 64).to(card_features.device)
+
+        # Only process sequences with length > 0
+        valid_indices = torch.nonzero(seq_lengths > 0).reshape(-1)
+
+        if valid_indices.numel() > 0:
+            # Select valid sequences
+            valid_seqs = action_seq[valid_indices]
+            valid_lengths = seq_lengths[valid_indices]
+
             # Sort by sequence length for packing
-            sorted_lengths, sorted_idx = torch.sort(seq_lengths, descending=True)
-            action_seq_sorted = action_seq[sorted_idx]
+            sorted_lengths, sorted_idx = torch.sort(valid_lengths, descending=True)
+            action_seq_sorted = valid_seqs[sorted_idx]
 
             # Pack padded sequence
             packed_seq = nn.utils.rnn.pack_padded_sequence(
@@ -144,10 +154,10 @@ class DynamicPokerNetwork(nn.Module):
 
             # Unsort to original order
             _, unsort_idx = torch.sort(sorted_idx)
-            action_features = last_hidden[unsort_idx]  # [batch, 64]
-        else:
-            # No actions yet, use zeros
-            action_features = torch.zeros(batch_size, 64).to(card_features.device)
+            valid_features = last_hidden[unsort_idx]  # [num_valid, 64]
+
+            # Scatter back to full batch
+            action_features[valid_indices] = valid_features
 
         # 4. Process global features
         global_features = self.global_encoder(

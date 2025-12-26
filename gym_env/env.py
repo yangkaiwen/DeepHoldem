@@ -194,10 +194,12 @@ class HoldemTable:
                 if i < len(options["stacks"]):
                     player.stack = options["stacks"][i]
                 else:
-                    player.stack = self.initial_stacks
+                    # Random stack between 200bb and 2000bb
+                    player.stack = np.random.randint(200, 2001) * self.big_blind
         else:
             for player in self.players:
-                player.stack = self.initial_stacks
+                # Random stack between 200bb and 2000bb
+                player.stack = np.random.randint(200, 2001) * self.big_blind
 
         # Track starting stacks for this hand
         self.hand_starting_stacks = [player.stack for player in self.players]
@@ -291,7 +293,7 @@ class HoldemTable:
             msg = f"legal moves: {[a.name for a in self.legal_moves]}"
             # self.state_history_encoder.record(msg)
             self._get_environment()
-            action = self.current_player.agent_obj.action(
+            action, action_info = self.current_player.agent_obj.action(
                 self.legal_moves, self.observation, self.info
             )
 
@@ -1115,7 +1117,7 @@ class HoldemTable:
             # Set player_cycle's dealer_idx to point to the correct player by seat
             for idx, player in enumerate(self.players):
                 if player.seat == self.dealer_pos:
-                    self.player_cycle.dealer_idx = idx - 1
+                    self.player_cycle.dealer_idx = idx
                     break
             self.dealer_pos_override = False  # Only use override once
             log.info(f"Using overridden dealer position: seat {self.dealer_pos}")
@@ -1214,8 +1216,9 @@ class HoldemTable:
             ):
                 self.legal_moves.append(action_type)
 
-        # ALL_IN: Always legal if player has stack
-        if self.current_player.stack > 0:
+        # ALL_IN: Only legal if player has more than the call amount
+        # If stack <= call_amount, they can only CALL (which puts them all-in)
+        if self.current_player.stack > call_amount_needed:
             self.legal_moves.append(Action.ALL_IN)
 
         log.debug(

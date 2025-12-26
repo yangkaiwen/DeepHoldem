@@ -1,0 +1,828 @@
+INFO - Episode 190/1000: 2 players (2 AC)
+INFO - Dealer position set to seat 0
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 0
+INFO - Dealer is at position 0
+INFO - Player 0 got ['2S', '6C'] and $529.8533137706733
+INFO - Player 1 got ['3D', '8S'] and $2051.6408323576443
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 0 (CentralAC): Action.SMALL_BLIND - Remaining stack: 528.8533137706733, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0        
+INFO - Seat 1 (CentralAC): Action.BIG_BLIND - Remaining stack: 2049.6408323576443, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 0 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 531.8533137706733, Community pot: 0, player pot: 529.8533137706733, min_call: 529.8533137706733, last_raise_amount: 527.8533137706733
+INFO - Agent (seat 0) incremental reward calculation: current_stack=0.00, previous_stack=529.85, reward=-529.85
+INFO - Seat 1 (CentralAC): Action.CALL - Remaining stack: 1521.7875185869711, Round pot: 1059.7066275413465, Community pot: 0, player pot: 529.8533137706733, min_call: 529.8533137706733, last_raise_amount: 527.8533137706733
+INFO - Agent (seat 1) incremental reward calculation: current_stack=1521.79, previous_stack=2051.64, reward=-529.85
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 0, Current round pot: 1059.7066275413465, Min call: 529.8533137706733
+INFO - Cards on table: ['9H', '7S', 'AC']
+INFO - --- FLOP ---
+INFO - ===ROUND: Stage.FLOP ===
+INFO - Seat 1 (CentralAC): Action.BET_1_2_POT - Remaining stack: 991.9342048162979, Round pot: 529.8533137706733, Community pot: 1059.7066275413465, player pot: 529.8533137706733, min_call: 529.8533137706733, last_raise_amount: 529.8533137706733
+INFO - Agent (seat 1) incremental reward calculation: current_stack=991.93, previous_stack=1521.79, reward=-529.85
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 1059.7066275413465, Current round pot: 529.8533137706733, Min call: 529.8533137706733
+INFO - Cards on table: ['9H', '7S', 'AC', 'JH']
+INFO - --- TURN ---
+INFO - ===ROUND: Stage.TURN ===
+INFO - Seat 1 (CentralAC): Action.BET_1_3_POT - Remaining stack: 467.37942418333137, Round pot: 524.5547806329665, Community pot: 1589.5599413120199, player pot: 524.5547806329665, min_call: 524.5547806329665, last_raise_amount: 524.5547806329665
+INFO - Agent (seat 1) incremental reward calculation: current_stack=467.38, previous_stack=991.93, reward=-524.55
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 1589.5599413120199, Current round pot: 524.5547806329665, Min call: 524.5547806329665
+INFO - Cards on table: ['9H', '7S', 'AC', 'JH', '4H']
+INFO - --- RIVER ---
+INFO - ===ROUND: Stage.RIVER ===
+INFO - Seat 1 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 467.37942418333137, Community pot: 2114.1147219449863, player pot: 467.37942418333137, min_call: 467.37942418333137, last_raise_amount: 467.37942418333137
+INFO - Agent (seat 1) incremental reward calculation: current_stack=0.00, previous_stack=467.38, reward=-467.38
+INFO - All non-folded players are all-in. Dealing remaining community cards and going to showdown.
+INFO - Closing round. Community pot: 2114.1147219449863, Current round pot: 467.37942418333137, Min call: 467.37942418333137
+INFO - --- SHOWDOWN ---
+INFO - ===ROUND: Stage.SHOWDOWN ===
+INFO - Player 1 won: HighCard
+INFO - Player (seat 0) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 1) terminal reward: 2581.4941461283174 (stack: 0.00 -> 2581.49)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 529.85 → Final: 0.00 | P&L: -529.85 (-100.0%)
+Seat 1: Initial: 2051.64 → Final: 2581.49 | P&L: +529.85 (+25.8%)
+==================================================
+INFO - Episode 191/1000: 2 players (2 AC)
+INFO - Dealer position set to seat 0
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 0
+INFO - Dealer is at position 0
+INFO - Player 0 got ['7S', 'QD'] and $3858.1351912170917
+INFO - Player 1 got ['3S', '6S'] and $2948.7406202695242
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 0 (CentralAC): Action.SMALL_BLIND - Remaining stack: 3857.1351912170917, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0
+INFO - Seat 1 (CentralAC): Action.BIG_BLIND - Remaining stack: 2946.7406202695242, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 0 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 3854.1351912170917, Round pot: 6.0, Community pot: 0, player pot: 4.0, min_call: 4.0, last_raise_amount: 2.0     
+INFO - Agent (seat 0) incremental reward calculation: current_stack=3854.14, previous_stack=3858.14, reward=-4.00
+INFO - Seat 1 (CentralAC): Action.BET_3_4_POT - Remaining stack: 2938.7406202695242, Round pot: 14.0, Community pot: 0, player pot: 10.0, min_call: 10.0, last_raise_amount: 6.0    
+INFO - Agent (seat 1) incremental reward calculation: current_stack=2938.74, previous_stack=2948.74, reward=-10.00
+INFO - Seat 0 (CentralAC): Action.BET_POT - Remaining stack: 3828.1351912170917, Round pot: 40.0, Community pot: 0, player pot: 30.0, min_call: 30.0, last_raise_amount: 20.0       
+INFO - Agent (seat 0) incremental reward calculation: current_stack=3828.14, previous_stack=3854.14, reward=-26.00
+INFO - Seat 1 (CentralAC): Action.FOLD - Remaining stack: 2938.7406202695242, Round pot: 40.0, Community pot: 0, player pot: 10.0, min_call: 30.0, last_raise_amount: 20.0
+INFO - Agent (seat 1) incremental reward calculation: current_stack=2938.74, previous_stack=2938.74, reward=0.00
+INFO - Only one player remaining in round
+INFO - Player 0 won: Only remaining player in round
+INFO - Player (seat 0) terminal reward: 40.0 (stack: 3828.14 -> 3868.14)
+INFO - Player (seat 1) terminal reward: 0.0 (stack: 2938.74 -> 2938.74)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 3858.14 → Final: 3868.14 | P&L: +10.00 (+0.3%)
+Seat 1: Initial: 2948.74 → Final: 2938.74 | P&L: -10.00 (-0.3%)
+==================================================
+INFO - Episode 192/1000: 10 players (8 AC)
+INFO - Dealer position set to seat 8
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 8
+INFO - Dealer is at position 8
+INFO - Player 0 got ['7S', 'AC'] and $1219.2336087805868
+INFO - Player 1 got ['4H', '7H'] and $3303.209071892075
+INFO - Player 2 got ['6C', '8D'] and $2089.906393084764
+INFO - Player 3 got ['AH', '4S'] and $2214.4371938553904
+INFO - Player 4 got ['5S', '2H'] and $1233.4646826614776
+INFO - Player 5 got ['AS', '6D'] and $2009.4882401277334
+INFO - Player 6 got ['3C', '5H'] and $927.697368813641
+INFO - Player 7 got ['2D', 'QH'] and $998.4528200971367
+INFO - Player 8 got ['9H', 'AD'] and $3510.0051442339086
+INFO - Player 9 got ['7D', 'QD'] and $3142.1907085743865
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 8 (Random_8): Action.SMALL_BLIND - Remaining stack: 3509.0051442339086, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0        
+INFO - Seat 9 (Random_9): Action.BIG_BLIND - Remaining stack: 3140.1907085743865, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 0 (CentralAC): Action.BET_3_2_POT - Remaining stack: 1209.7336087805868, Round pot: 12.5, Community pot: 0, player pot: 9.5, min_call: 9.5, last_raise_amount: 7.5      
+INFO - Agent (seat 0) incremental reward calculation: current_stack=1209.73, previous_stack=1219.23, reward=-9.50
+INFO - Seat 1 (CentralAC): Action.BET_1_2_POT - Remaining stack: 3282.709071892075, Round pot: 33.0, Community pot: 0, player pot: 20.5, min_call: 20.5, last_raise_amount: 11.0    
+INFO - Agent (seat 1) incremental reward calculation: current_stack=3282.71, previous_stack=3303.21, reward=-20.50
+INFO - Seat 2 (CentralAC): Action.BET_1_2_POT - Remaining stack: 2042.6563930847642, Round pot: 80.25, Community pot: 0, player pot: 47.25, min_call: 47.25, last_raise_amount: 26.75
+INFO - Agent (seat 2) incremental reward calculation: current_stack=2042.66, previous_stack=2089.91, reward=-47.25
+INFO - Seat 3 (CentralAC): Action.BET_1_2_POT - Remaining stack: 2103.4371938553904, Round pot: 191.25, Community pot: 0, player pot: 111.0, min_call: 111.0, last_raise_amount: 63.75
+INFO - Agent (seat 3) incremental reward calculation: current_stack=2103.44, previous_stack=2214.44, reward=-111.00
+INFO - Seat 4 (CentralAC): Action.BET_1_3_POT - Remaining stack: 1022.7221826614775, Round pot: 401.9925, Community pot: 0, player pot: 210.7425, min_call: 210.7425, last_raise_amount: 99.7425
+INFO - Agent (seat 4) incremental reward calculation: current_stack=1022.72, previous_stack=1233.46, reward=-210.74
+INFO - Seat 5 (CentralAC): Action.BET_1_2_POT - Remaining stack: 1492.3782401277335, Round pot: 919.1025, Community pot: 0, player pot: 517.11, min_call: 517.11, last_raise_amount: 306.3675
+INFO - Agent (seat 5) incremental reward calculation: current_stack=1492.38, previous_stack=2009.49, reward=-517.11
+INFO - Seat 6 (CentralAC): Action.BET_1_4_POT - Remaining stack: 51.534243813640956, Round pot: 1795.265625, Community pot: 0, player pot: 876.163125, min_call: 876.163125, last_raise_amount: 359.053125
+INFO - Agent (seat 6) incremental reward calculation: current_stack=51.53, previous_stack=927.70, reward=-876.16
+INFO - Seat 7 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 2793.7184450971367, Community pot: 0, player pot: 998.4528200971367, min_call: 998.4528200971367, last_raise_amount: 122.2896950971367
+INFO - Agent (seat 7) incremental reward calculation: current_stack=0.00, previous_stack=998.45, reward=-998.45
+INFO - Seat 8 (Random_8): Action.BET_2_3_POT - Remaining stack: 9.379289108551347, Round pot: 6293.344300222494, Community pot: 0, player pot: 3500.6258551253572, min_call: 3500.6258551253572, last_raise_amount: 2502.1730350282205
+INFO - Agent (seat 8) incremental reward calculation: current_stack=9.38, previous_stack=3510.01, reward=-3500.63
+INFO - Seat 9 (Random_9): Action.CALL - Remaining stack: 0.0, Round pot: 9433.53500879688, Community pot: 0, player pot: 3142.1907085743865, min_call: 3500.6258551253572, last_raise_amount: 2502.1730350282205
+INFO - Agent (seat 9) incremental reward calculation: current_stack=0.00, previous_stack=3142.19, reward=-3142.19
+INFO - Seat 0 (CentralAC): Action.CALL - Remaining stack: 0.0, Round pot: 10643.268617577467, Community pot: 0, player pot: 1219.2336087805868, min_call: 3500.6258551253572, last_raise_amount: 2502.1730350282205
+INFO - Agent (seat 0) incremental reward calculation: current_stack=0.00, previous_stack=1209.73, reward=-1209.73
+INFO - Seat 1 (CentralAC): Action.CALL - Remaining stack: 0.0, Round pot: 13925.977689469542, Community pot: 0, player pot: 3303.209071892075, min_call: 3500.6258551253572, last_raise_amount: 2502.1730350282205
+INFO - Agent (seat 1) incremental reward calculation: current_stack=0.00, previous_stack=3282.71, reward=-3282.71
+INFO - Seat 2 (CentralAC): Action.FOLD - Remaining stack: 2042.6563930847642, Round pot: 13925.977689469542, Community pot: 0, player pot: 47.25, min_call: 3500.6258551253572, last_raise_amount: 2502.1730350282205
+INFO - Agent (seat 2) incremental reward calculation: current_stack=2042.66, previous_stack=2042.66, reward=0.00
+INFO - Seat 3 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 16029.414883324933, Community pot: 0, player pot: 2214.4371938553904, min_call: 3500.6258551253572, last_raise_amount: 2502.1730350282205
+INFO - Agent (seat 3) incremental reward calculation: current_stack=0.00, previous_stack=2103.44, reward=-2103.44
+INFO - Seat 4 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 17052.13706598641, Community pot: 0, player pot: 1233.4646826614776, min_call: 3500.6258551253572, last_raise_amount: 2502.1730350282205
+INFO - Agent (seat 4) incremental reward calculation: current_stack=0.00, previous_stack=1022.72, reward=-1022.72
+INFO - Seat 5 (CentralAC): Action.CALL - Remaining stack: 0.0, Round pot: 18544.515306114146, Community pot: 0, player pot: 2009.4882401277337, min_call: 3500.6258551253572, last_raise_amount: 2502.1730350282205
+INFO - Agent (seat 5) incremental reward calculation: current_stack=0.00, previous_stack=1492.38, reward=-1492.38
+INFO - Seat 6 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 18596.049549927786, Community pot: 0, player pot: 927.697368813641, min_call: 3500.6258551253572, last_raise_amount: 2502.1730350282205
+INFO - Agent (seat 6) incremental reward calculation: current_stack=0.00, previous_stack=51.53, reward=-51.53
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 0, Current round pot: 18596.049549927786, Min call: 3500.6258551253572
+INFO - Cards on table: ['9C', '2S', 'QS']
+INFO - --- FLOP ---
+INFO - ===ROUND: Stage.FLOP ===
+INFO - Seat 8 (Random_8): Action.BET_MIN_RAISE - Remaining stack: 7.3792891085513475, Round pot: 2, Community pot: 18596.049549927786, player pot: 2, min_call: 2, last_raise_amount: 2
+INFO - Agent (seat 8) incremental reward calculation: current_stack=7.38, previous_stack=9.38, reward=-2.00
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 18596.049549927786, Current round pot: 2, Min call: 2
+INFO - Cards on table: ['9C', '2S', 'QS', '4D']
+INFO - --- TURN ---
+INFO - ===ROUND: Stage.TURN ===
+INFO - Seat 8 (Random_8): Action.BET_MIN_RAISE - Remaining stack: 5.3792891085513475, Round pot: 2, Community pot: 18598.049549927786, player pot: 2, min_call: 2, last_raise_amount: 2
+INFO - Agent (seat 8) incremental reward calculation: current_stack=5.38, previous_stack=7.38, reward=-2.00
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 18598.049549927786, Current round pot: 2, Min call: 2
+INFO - Cards on table: ['9C', '2S', 'QS', '4D', 'KD']
+INFO - --- RIVER ---
+INFO - ===ROUND: Stage.RIVER ===
+INFO - Seat 8 (Random_8): Action.ALL_IN - Remaining stack: 0.0, Round pot: 5.3792891085513475, Community pot: 18600.049549927786, player pot: 5.3792891085513475, min_call: 5.3792891085513475, last_raise_amount: 5.3792891085513475
+INFO - Agent (seat 8) incremental reward calculation: current_stack=0.00, previous_stack=5.38, reward=-5.38
+INFO - All non-folded players are all-in. Dealing remaining community cards and going to showdown.
+INFO - Closing round. Community pot: 18600.049549927786, Current round pot: 5.3792891085513475, Min call: 5.3792891085513475
+INFO - --- SHOWDOWN ---
+INFO - ===ROUND: Stage.SHOWDOWN ===
+INFO - Player 7 won: TwoPair
+INFO - Returning side pots
+INFO - Player (seat 0) terminal reward: 220.78078868345006 (stack: 0.00 -> 220.78)
+INFO - Player (seat 1) terminal reward: 2304.756251794938 (stack: 0.00 -> 2304.76)
+INFO - Player (seat 2) terminal reward: 0.0 (stack: 2042.66 -> 2042.66)
+INFO - Player (seat 3) terminal reward: 1215.9843737582537 (stack: 0.00 -> 1215.98)
+INFO - Player (seat 4) terminal reward: 235.01186256434084 (stack: 0.00 -> 235.01)
+INFO - Player (seat 5) terminal reward: 1011.0354200305969 (stack: 0.00 -> 1011.04)
+INFO - Player (seat 6) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 7) terminal reward: 8962.569929590734 (stack: 0.00 -> 8962.57)
+INFO - Player (seat 8) terminal reward: 2511.552324136772 (stack: 0.00 -> 2511.55)
+INFO - Player (seat 9) terminal reward: 2143.7378884772497 (stack: 0.00 -> 2143.74)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 1219.23 → Final: 220.78 | P&L: -998.45 (-81.9%)
+Seat 1: Initial: 3303.21 → Final: 2304.76 | P&L: -998.45 (-30.2%)
+Seat 2: Initial: 2089.91 → Final: 2042.66 | P&L: -47.25 (-2.3%)
+Seat 3: Initial: 2214.44 → Final: 1215.98 | P&L: -998.45 (-45.1%)
+Seat 4: Initial: 1233.46 → Final: 235.01 | P&L: -998.45 (-80.9%)
+Seat 5: Initial: 2009.49 → Final: 1011.04 | P&L: -998.45 (-49.7%)
+Seat 6: Initial: 927.70 → Final: 0.00 | P&L: -927.70 (-100.0%)
+Seat 7: Initial: 998.45 → Final: 8962.57 | P&L: +7964.12 (+797.6%)
+Seat 8: Initial: 3510.01 → Final: 2511.55 | P&L: -998.45 (-28.4%)
+Seat 9: Initial: 3142.19 → Final: 2143.74 | P&L: -998.45 (-31.8%)
+==================================================
+INFO - Episode 193/1000: 8 players (7 AC)
+INFO - Dealer position set to seat 0
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 0
+INFO - Dealer is at position 0
+INFO - Player 0 got ['5S', '8S'] and $895.1300250715332
+INFO - Player 1 got ['5D', '6D'] and $1964.3070457331476
+INFO - Player 2 got ['TC', 'JH'] and $409.88170137524145
+INFO - Player 3 got ['AC', '2D'] and $3930.792530309055
+INFO - Player 4 got ['TD', '3C'] and $2388.349846403571
+INFO - Player 5 got ['6C', '9S'] and $2279.065353062428
+INFO - Player 6 got ['TS', '7S'] and $3261.9869729685092
+INFO - Player 7 got ['AH', '6S'] and $977.1740421386539
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 0 (CentralAC): Action.SMALL_BLIND - Remaining stack: 894.1300250715332, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0        
+INFO - Seat 1 (CentralAC): Action.BIG_BLIND - Remaining stack: 1962.3070457331476, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 2 (Random_2): Action.CALL - Remaining stack: 407.88170137524145, Round pot: 5.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Agent (seat 2) incremental reward calculation: current_stack=407.88, previous_stack=409.88, reward=-2.00
+INFO - Seat 3 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 3926.792530309055, Round pot: 9.0, Community pot: 0, player pot: 4.0, min_call: 4.0, last_raise_amount: 2.0      
+INFO - Agent (seat 3) incremental reward calculation: current_stack=3926.79, previous_stack=3930.79, reward=-4.00
+INFO - Seat 4 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 2382.349846403571, Round pot: 15.0, Community pot: 0, player pot: 6.0, min_call: 6.0, last_raise_amount: 2.0     
+INFO - Agent (seat 4) incremental reward calculation: current_stack=2382.35, previous_stack=2388.35, reward=-6.00
+INFO - Seat 5 (CentralAC): Action.FOLD - Remaining stack: 2279.065353062428, Round pot: 15.0, Community pot: 0, player pot: 0, min_call: 6.0, last_raise_amount: 2.0
+INFO - Agent (seat 5) incremental reward calculation: current_stack=2279.07, previous_stack=2279.07, reward=0.00
+INFO - Seat 6 (CentralAC): Action.BET_3_2_POT - Remaining stack: 3224.4869729685092, Round pot: 52.5, Community pot: 0, player pot: 37.5, min_call: 37.5, last_raise_amount: 31.5   
+INFO - Agent (seat 6) incremental reward calculation: current_stack=3224.49, previous_stack=3261.99, reward=-37.50
+INFO - Seat 7 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 1029.674042138654, Community pot: 0, player pot: 977.1740421386539, min_call: 977.1740421386539, last_raise_amount: 939.6740421386539
+INFO - Agent (seat 7) incremental reward calculation: current_stack=0.00, previous_stack=977.17, reward=-977.17
+INFO - Seat 0 (CentralAC): Action.FOLD - Remaining stack: 894.1300250715332, Round pot: 1029.674042138654, Community pot: 0, player pot: 1.0, min_call: 977.1740421386539, last_raise_amount: 939.6740421386539
+INFO - Agent (seat 0) incremental reward calculation: current_stack=894.13, previous_stack=895.13, reward=-1.00
+INFO - Seat 1 (CentralAC): Action.CALL - Remaining stack: 987.1330035944936, Round pot: 2004.8480842773079, Community pot: 0, player pot: 977.1740421386539, min_call: 977.1740421386539, last_raise_amount: 939.6740421386539
+INFO - Agent (seat 1) incremental reward calculation: current_stack=987.13, previous_stack=1964.31, reward=-977.17
+INFO - Seat 2 (Random_2): Action.ALL_IN - Remaining stack: 0.0, Round pot: 2412.7297856525493, Community pot: 0, player pot: 409.88170137524145, min_call: 977.1740421386539, last_raise_amount: 939.6740421386539
+INFO - Agent (seat 2) incremental reward calculation: current_stack=0.00, previous_stack=407.88, reward=-407.88
+INFO - Seat 3 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 6339.522315961604, Community pot: 0, player pot: 3930.792530309055, min_call: 3930.792530309055, last_raise_amount: 2953.618488170401
+INFO - Agent (seat 3) incremental reward calculation: current_stack=0.00, previous_stack=3926.79, reward=-3926.79
+INFO - Seat 4 (CentralAC): Action.FOLD - Remaining stack: 2382.349846403571, Round pot: 6339.522315961604, Community pot: 0, player pot: 6.0, min_call: 3930.792530309055, last_raise_amount: 2953.618488170401
+INFO - Agent (seat 4) incremental reward calculation: current_stack=2382.35, previous_stack=2382.35, reward=0.00
+INFO - Seat 6 (CentralAC): Action.CALL - Remaining stack: 0.0, Round pot: 9564.009288930114, Community pot: 0, player pot: 3261.9869729685092, min_call: 3930.792530309055, last_raise_amount: 2953.618488170401
+INFO - Agent (seat 6) incremental reward calculation: current_stack=0.00, previous_stack=3224.49, reward=-3224.49
+INFO - Seat 1 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 10551.142292524608, Community pot: 0, player pot: 1964.3070457331476, min_call: 3930.792530309055, last_raise_amount: 2953.618488170401
+INFO - Agent (seat 1) incremental reward calculation: current_stack=0.00, previous_stack=987.13, reward=-987.13
+INFO - All non-folded players are all-in. Dealing remaining community cards and going to showdown.
+INFO - Closing round. Community pot: 0, Current round pot: 10551.142292524608, Min call: 3930.792530309055
+INFO - Cards on table: ['9D', '4C', '4D']
+INFO - --- FLOP ---
+INFO - ===ROUND: Stage.FLOP ===
+INFO - Closing round. Community pot: 10551.142292524608, Current round pot: 0, Min call: 0
+INFO - Cards on table: ['9D', '4C', '4D', 'TH']
+INFO - --- TURN ---
+INFO - ===ROUND: Stage.TURN ===
+INFO - Closing round. Community pot: 10551.142292524608, Current round pot: 0, Min call: 0
+INFO - Cards on table: ['9D', '4C', '4D', 'TH', 'QC']
+INFO - --- RIVER ---
+INFO - ===ROUND: Stage.RIVER ===
+INFO - Closing round. Community pot: 10551.142292524608, Current round pot: 0, Min call: 0
+INFO - --- SHOWDOWN ---
+INFO - ===ROUND: Stage.SHOWDOWN ===
+INFO - Player 2 won: TwoPair
+INFO - Returning side pots
+INFO - Player (seat 0) terminal reward: 0.0 (stack: 894.13 -> 894.13)
+INFO - Player (seat 1) terminal reward: 1554.4253443579062 (stack: 0.00 -> 1554.43)
+INFO - Player (seat 2) terminal reward: 2056.4085068762074 (stack: 0.00 -> 2056.41)
+INFO - Player (seat 3) terminal reward: 3520.9108289338137 (stack: 0.00 -> 3520.91)
+INFO - Player (seat 4) terminal reward: 0.0 (stack: 2382.35 -> 2382.35)
+INFO - Player (seat 5) terminal reward: 0.0 (stack: 2279.07 -> 2279.07)
+INFO - Player (seat 6) terminal reward: 2852.105271593268 (stack: 0.00 -> 2852.11)
+INFO - Player (seat 7) terminal reward: 567.2923407634125 (stack: 0.00 -> 567.29)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 895.13 → Final: 894.13 | P&L: -1.00 (-0.1%)
+Seat 1: Initial: 1964.31 → Final: 1554.43 | P&L: -409.88 (-20.9%)
+Seat 2: Initial: 409.88 → Final: 2056.41 | P&L: +1646.53 (+401.7%)
+Seat 3: Initial: 3930.79 → Final: 3520.91 | P&L: -409.88 (-10.4%)
+Seat 4: Initial: 2388.35 → Final: 2382.35 | P&L: -6.00 (-0.3%)
+Seat 5: Initial: 2279.07 → Final: 2279.07 | P&L: +0.00 (+0.0%)
+Seat 6: Initial: 3261.99 → Final: 2852.11 | P&L: -409.88 (-12.6%)
+Seat 7: Initial: 977.17 → Final: 567.29 | P&L: -409.88 (-41.9%)
+==================================================
+INFO - Episode 194/1000: 6 players (6 AC)
+INFO - Dealer position set to seat 4
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 4
+INFO - Dealer is at position 4
+INFO - Player 0 got ['TS', 'KH'] and $2023.5612267079584
+INFO - Player 1 got ['2H', 'QS'] and $1818.3126483369947
+INFO - Player 2 got ['5S', '9S'] and $2332.1684149016064
+INFO - Player 3 got ['KD', '6C'] and $2553.783879088496
+INFO - Player 4 got ['AC', '2D'] and $3540.445774100743
+INFO - Player 5 got ['2S', '8D'] and $3271.1669400785295
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 4 (CentralAC): Action.SMALL_BLIND - Remaining stack: 3539.445774100743, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0        
+INFO - Seat 5 (CentralAC): Action.BIG_BLIND - Remaining stack: 3269.1669400785295, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 0 (CentralAC): Action.CALL - Remaining stack: 2021.5612267079584, Round pot: 5.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Agent (seat 0) incremental reward calculation: current_stack=2021.56, previous_stack=2023.56, reward=-2.00
+INFO - Seat 1 (CentralAC): Action.BET_2_3_POT - Remaining stack: 1811.6926483369948, Round pot: 11.620000000000001, Community pot: 0, player pot: 6.62, min_call: 6.62, last_raise_amount: 4.62
+INFO - Agent (seat 1) incremental reward calculation: current_stack=1811.69, previous_stack=1818.31, reward=-6.62
+INFO - Seat 2 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 2320.9284149016066, Round pot: 22.86, Community pot: 0, player pot: 11.24, min_call: 11.24, last_raise_amount: 4.62
+INFO - Agent (seat 2) incremental reward calculation: current_stack=2320.93, previous_stack=2332.17, reward=-11.24
+INFO - Seat 3 (CentralAC): Action.BET_3_2_POT - Remaining stack: 2491.3938790884963, Round pot: 85.25, Community pot: 0, player pot: 62.39000000000001, min_call: 62.39000000000001, last_raise_amount: 51.150000000000006
+INFO - Agent (seat 3) incremental reward calculation: current_stack=2491.39, previous_stack=2553.78, reward=-62.39
+INFO - Seat 4 (CentralAC): Action.BET_POT - Remaining stack: 3331.415774100743, Round pot: 293.28000000000003, Community pot: 0, player pot: 209.03000000000003, min_call: 209.03000000000003, last_raise_amount: 146.64000000000001
+INFO - Agent (seat 4) incremental reward calculation: current_stack=3331.42, previous_stack=3540.45, reward=-209.03
+INFO - Seat 5 (CentralAC): Action.BET_1_3_POT - Remaining stack: 2897.0346400785293, Round pot: 665.4123000000001, Community pot: 0, player pot: 374.13230000000004, min_call: 374.13230000000004, last_raise_amount: 165.1023
+INFO - Agent (seat 5) incremental reward calculation: current_stack=2897.03, previous_stack=3271.17, reward=-374.13
+INFO - Seat 0 (CentralAC): Action.BET_1_4_POT - Remaining stack: 1390.0427767079584, Round pot: 1296.93075, Community pot: 0, player pot: 633.51845, min_call: 633.51845, last_raise_amount: 259.38615
+INFO - Agent (seat 0) incremental reward calculation: current_stack=1390.04, previous_stack=2021.56, reward=-631.52
+INFO - Seat 1 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 925.4080483369947, Round pot: 2183.21535, Community pot: 0, player pot: 892.9046000000001, min_call: 892.9046000000001, last_raise_amount: 259.38615000000004
+INFO - Agent (seat 1) incremental reward calculation: current_stack=925.41, previous_stack=1811.69, reward=-886.28
+INFO - Seat 2 (CentralAC): Action.BET_1_4_POT - Remaining stack: 673.0438274016064, Round pot: 3831.0999375, Community pot: 0, player pot: 1659.1245875000002, min_call: 1659.1245875000002, last_raise_amount: 766.2199875000001
+INFO - Agent (seat 2) incremental reward calculation: current_stack=673.04, previous_stack=2320.93, reward=-1647.88
+INFO - Seat 3 (CentralAC): Action.CALL - Remaining stack: 894.6592915884962, Round pot: 5427.834525, Community pot: 0, player pot: 1659.1245875000002, min_call: 1659.1245875000002, last_raise_amount: 766.2199875000001
+INFO - Agent (seat 3) incremental reward calculation: current_stack=894.66, previous_stack=2491.39, reward=-1596.73
+INFO - Seat 4 (CentralAC): Action.CALL - Remaining stack: 1881.3211866007427, Round pot: 6877.9291125, Community pot: 0, player pot: 1659.1245875000002, min_call: 1659.1245875000002, last_raise_amount: 766.2199875000001
+INFO - Agent (seat 4) incremental reward calculation: current_stack=1881.32, previous_stack=3331.42, reward=-1450.09
+INFO - Seat 5 (CentralAC): Action.FOLD - Remaining stack: 2897.0346400785293, Round pot: 6877.9291125, Community pot: 0, player pot: 374.13230000000004, min_call: 1659.1245875000002, last_raise_amount: 766.2199875000001
+INFO - Agent (seat 5) incremental reward calculation: current_stack=2897.03, previous_stack=2897.03, reward=0.00
+INFO - Seat 0 (CentralAC): Action.CALL - Remaining stack: 364.43663920795825, Round pot: 7903.53525, Community pot: 0, player pot: 1659.1245875000002, min_call: 1659.1245875000002, last_raise_amount: 766.2199875000001
+INFO - Agent (seat 0) incremental reward calculation: current_stack=364.44, previous_stack=1390.04, reward=-1025.61
+INFO - Seat 1 (CentralAC): Action.FOLD - Remaining stack: 925.4080483369947, Round pot: 7903.53525, Community pot: 0, player pot: 892.9046000000001, min_call: 1659.1245875000002, last_raise_amount: 766.2199875000001
+INFO - Agent (seat 1) incremental reward calculation: current_stack=925.41, previous_stack=925.41, reward=0.00
+INFO - Seat 2 (CentralAC): Action.CHECK - Remaining stack: 673.0438274016064, Round pot: 7903.53525, Community pot: 0, player pot: 1659.1245875000002, min_call: 1659.1245875000002, last_raise_amount: 766.2199875000001
+INFO - Agent (seat 2) incremental reward calculation: current_stack=673.04, previous_stack=673.04, reward=0.00
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 0, Current round pot: 7903.53525, Min call: 1659.1245875000002
+INFO - Cards on table: ['2C', 'JD', '4C']
+INFO - --- FLOP ---
+INFO - ===ROUND: Stage.FLOP ===
+INFO - Seat 4 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 1879.3211866007427, Round pot: 2, Community pot: 7903.535250000002, player pot: 2, min_call: 2, last_raise_amount: 2
+INFO - Agent (seat 4) incremental reward calculation: current_stack=1879.32, previous_stack=1881.32, reward=-2.00
+INFO - Seat 0 (CentralAC): Action.CALL - Remaining stack: 362.43663920795825, Round pot: 4, Community pot: 7903.535250000002, player pot: 2, min_call: 2, last_raise_amount: 2      
+INFO - Agent (seat 0) incremental reward calculation: current_stack=362.44, previous_stack=364.44, reward=-2.00
+INFO - Seat 2 (CentralAC): Action.FOLD - Remaining stack: 673.0438274016064, Round pot: 4, Community pot: 7903.535250000002, player pot: 0, min_call: 2, last_raise_amount: 2       
+INFO - Agent (seat 2) incremental reward calculation: current_stack=673.04, previous_stack=673.04, reward=0.00
+INFO - Seat 3 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 898.6592915884962, Community pot: 7903.535250000002, player pot: 894.6592915884962, min_call: 894.6592915884962, last_raise_amount: 892.6592915884962
+INFO - Agent (seat 3) incremental reward calculation: current_stack=0.00, previous_stack=894.66, reward=-894.66
+INFO - Seat 4 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 2777.980478189239, Community pot: 7903.535250000002, player pot: 1881.3211866007427, min_call: 1881.3211866007427, last_raise_amount: 986.6618950122465
+INFO - Agent (seat 4) incremental reward calculation: current_stack=0.00, previous_stack=1879.32, reward=-1879.32
+INFO - Seat 0 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 3140.417117397197, Community pot: 7903.535250000002, player pot: 364.43663920795825, min_call: 1881.3211866007427, last_raise_amount: 986.6618950122465
+INFO - Agent (seat 0) incremental reward calculation: current_stack=0.00, previous_stack=362.44, reward=-362.44
+INFO - All non-folded players are all-in. Dealing remaining community cards and going to showdown.
+INFO - Closing round. Community pot: 7903.535250000002, Current round pot: 3140.417117397197, Min call: 1881.3211866007427
+INFO - Cards on table: ['2C', 'JD', '4C', '9D']
+INFO - --- TURN ---
+INFO - ===ROUND: Stage.TURN ===
+INFO - Closing round. Community pot: 11043.9523673972, Current round pot: 0, Min call: 0
+INFO - Cards on table: ['2C', 'JD', '4C', '9D', '7D']
+INFO - --- RIVER ---
+INFO - ===ROUND: Stage.RIVER ===
+INFO - Closing round. Community pot: 11043.9523673972, Current round pot: 0, Min call: 0
+INFO - --- SHOWDOWN ---
+INFO - ===ROUND: Stage.SHOWDOWN ===
+INFO - Player 4 won: Pair
+INFO - Player (seat 0) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 1) terminal reward: 0.0 (stack: 925.41 -> 925.41)
+INFO - Player (seat 2) terminal reward: 0.0 (stack: 673.04 -> 673.04)
+INFO - Player (seat 3) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 4) terminal reward: 11043.952367397198 (stack: 0.00 -> 11043.95)
+INFO - Player (seat 5) terminal reward: 0.0 (stack: 2897.03 -> 2897.03)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 2023.56 → Final: 0.00 | P&L: -2023.56 (-100.0%)
+Seat 1: Initial: 1818.31 → Final: 925.41 | P&L: -892.90 (-49.1%)
+Seat 2: Initial: 2332.17 → Final: 673.04 | P&L: -1659.12 (-71.1%)
+Seat 3: Initial: 2553.78 → Final: 0.00 | P&L: -2553.78 (-100.0%)
+Seat 4: Initial: 3540.45 → Final: 11043.95 | P&L: +7503.51 (+211.9%)
+Seat 5: Initial: 3271.17 → Final: 2897.03 | P&L: -374.13 (-11.4%)
+==================================================
+INFO - Episode 195/1000: 7 players (5 AC)
+INFO - Dealer position set to seat 0
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 0
+INFO - Dealer is at position 0
+INFO - Player 0 got ['KC', '6D'] and $3399.999817034797
+INFO - Player 1 got ['TD', '9H'] and $1148.9823312658418
+INFO - Player 2 got ['TH', 'KH'] and $3282.167033763008
+INFO - Player 3 got ['JS', '9C'] and $3036.4078722294507
+INFO - Player 4 got ['8C', 'QC'] and $709.0993819010462
+INFO - Player 5 got ['4C', '7S'] and $3967.168365832612
+INFO - Player 6 got ['AS', '7D'] and $3874.8781020116844
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 0 (CentralAC): Action.SMALL_BLIND - Remaining stack: 3398.999817034797, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0        
+INFO - Seat 1 (Random_1): Action.BIG_BLIND - Remaining stack: 1146.9823312658418, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 2 (CentralAC): Action.BET_3_2_POT - Remaining stack: 3272.667033763008, Round pot: 12.5, Community pot: 0, player pot: 9.5, min_call: 9.5, last_raise_amount: 7.5       
+INFO - Agent (seat 2) incremental reward calculation: current_stack=3272.67, previous_stack=3282.17, reward=-9.50
+INFO - Seat 3 (CentralAC): Action.BET_2_3_POT - Remaining stack: 3012.3878722294507, Round pot: 36.52, Community pot: 0, player pot: 24.020000000000003, min_call: 24.020000000000003, last_raise_amount: 14.520000000000003
+INFO - Agent (seat 3) incremental reward calculation: current_stack=3012.39, previous_stack=3036.41, reward=-24.02
+INFO - Seat 4 (CentralAC): Action.BET_1_4_POT - Remaining stack: 669.9443819010462, Round pot: 75.67500000000001, Community pot: 0, player pot: 39.155, min_call: 39.155, last_raise_amount: 15.134999999999998
+INFO - Agent (seat 4) incremental reward calculation: current_stack=669.94, previous_stack=709.10, reward=-39.15
+INFO - Seat 5 (Random_5): Action.BET_MIN_RAISE - Remaining stack: 3912.878365832612, Round pot: 129.965, Community pot: 0, player pot: 54.29, min_call: 54.29, last_raise_amount: 15.134999999999998
+INFO - Agent (seat 5) incremental reward calculation: current_stack=3912.88, previous_stack=3967.17, reward=-54.29
+INFO - Seat 6 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 3805.453102011684, Round pot: 199.39, Community pot: 0, player pot: 69.425, min_call: 69.425, last_raise_amount: 15.134999999999998
+INFO - Agent (seat 6) incremental reward calculation: current_stack=3805.45, previous_stack=3874.88, reward=-69.43
+INFO - Seat 0 (CentralAC): Action.BET_1_2_POT - Remaining stack: 3196.667317034797, Round pot: 401.72249999999997, Community pot: 0, player pot: 203.33249999999998, min_call: 203.33249999999998, last_raise_amount: 133.90749999999997
+INFO - Agent (seat 0) incremental reward calculation: current_stack=3196.67, previous_stack=3400.00, reward=-203.33
+INFO - Seat 1 (Random_1): Action.BET_MIN_RAISE - Remaining stack: 811.7423312658418, Round pot: 736.9624999999999, Community pot: 0, player pot: 337.23999999999995, min_call: 337.23999999999995, last_raise_amount: 133.90749999999997
+INFO - Agent (seat 1) incremental reward calculation: current_stack=811.74, previous_stack=1148.98, reward=-337.24
+INFO - Seat 2 (CentralAC): Action.BET_3_2_POT - Remaining stack: 1347.8732837630082, Round pot: 2661.7562499999995, Community pot: 0, player pot: 1934.2937499999998, min_call: 1934.2937499999998, last_raise_amount: 1597.0537499999998
+INFO - Agent (seat 2) incremental reward calculation: current_stack=1347.87, previous_stack=3272.67, reward=-1924.79
+INFO - Seat 3 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 5674.144122229451, Community pot: 0, player pot: 3036.4078722294507, min_call: 3036.4078722294507, last_raise_amount: 1102.114122229451
+INFO - Agent (seat 3) incremental reward calculation: current_stack=0.00, previous_stack=3012.39, reward=-3012.39
+INFO - Seat 4 (CentralAC): Action.CALL - Remaining stack: 0.0, Round pot: 6344.088504130497, Community pot: 0, player pot: 709.0993819010462, min_call: 3036.4078722294507, last_raise_amount: 1102.114122229451
+INFO - Agent (seat 4) incremental reward calculation: current_stack=0.00, previous_stack=669.94, reward=-669.94
+INFO - Seat 5 (Random_5): Action.FOLD - Remaining stack: 3912.878365832612, Round pot: 6344.088504130497, Community pot: 0, player pot: 54.29, min_call: 3036.4078722294507, last_raise_amount: 1102.114122229451
+INFO - Agent (seat 5) incremental reward calculation: current_stack=3912.88, previous_stack=3912.88, reward=0.00
+INFO - Seat 6 (CentralAC): Action.FOLD - Remaining stack: 3805.453102011684, Round pot: 6344.088504130497, Community pot: 0, player pot: 69.425, min_call: 3036.4078722294507, last_raise_amount: 1102.114122229451
+INFO - Agent (seat 6) incremental reward calculation: current_stack=3805.45, previous_stack=3805.45, reward=0.00
+INFO - Seat 0 (CentralAC): Action.CALL - Remaining stack: 363.59194480534643, Round pot: 9177.163876359948, Community pot: 0, player pot: 3036.4078722294507, min_call: 3036.4078722294507, last_raise_amount: 1102.114122229451
+INFO - Agent (seat 0) incremental reward calculation: current_stack=363.59, previous_stack=3196.67, reward=-2833.08
+INFO - Seat 1 (Random_1): Action.ALL_IN - Remaining stack: 0.0, Round pot: 9988.906207625789, Community pot: 0, player pot: 1148.9823312658418, min_call: 3036.4078722294507, last_raise_amount: 1102.114122229451
+INFO - Agent (seat 1) incremental reward calculation: current_stack=0.00, previous_stack=811.74, reward=-811.74
+INFO - Seat 2 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 11336.779491388797, Community pot: 0, player pot: 3282.167033763008, min_call: 3282.167033763008, last_raise_amount: 245.7591615335573
+INFO - Agent (seat 2) incremental reward calculation: current_stack=0.00, previous_stack=1347.87, reward=-1347.87
+INFO - Seat 0 (CentralAC): Action.CALL - Remaining stack: 117.83278327178914, Round pot: 11582.538652922354, Community pot: 0, player pot: 3282.167033763008, min_call: 3282.167033763008, last_raise_amount: 245.7591615335573
+INFO - Agent (seat 0) incremental reward calculation: current_stack=117.83, previous_stack=363.59, reward=-245.76
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 0, Current round pot: 11582.538652922354, Min call: 3282.167033763008
+INFO - Cards on table: ['3C', '4H', '9S']
+INFO - --- FLOP ---
+INFO - ===ROUND: Stage.FLOP ===
+INFO - Seat 0 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 115.83278327178914, Round pot: 2, Community pot: 11582.538652922354, player pot: 2, min_call: 2, last_raise_amount: 2
+INFO - Agent (seat 0) incremental reward calculation: current_stack=115.83, previous_stack=117.83, reward=-2.00
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 11582.538652922354, Current round pot: 2, Min call: 2
+INFO - Cards on table: ['3C', '4H', '9S', 'JC']
+INFO - --- TURN ---
+INFO - ===ROUND: Stage.TURN ===
+INFO - Seat 0 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 115.83278327178914, Community pot: 11584.538652922354, player pot: 115.83278327178914, min_call: 115.83278327178914, last_raise_amount: 115.83278327178914
+INFO - Agent (seat 0) incremental reward calculation: current_stack=0.00, previous_stack=115.83, reward=-115.83
+INFO - All non-folded players are all-in. Dealing remaining community cards and going to showdown.
+INFO - Closing round. Community pot: 11584.538652922354, Current round pot: 115.83278327178914, Min call: 115.83278327178914
+INFO - Cards on table: ['3C', '4H', '9S', 'JC', '4S']
+INFO - --- RIVER ---
+INFO - ===ROUND: Stage.RIVER ===
+INFO - Closing round. Community pot: 11700.371436194144, Current round pot: 0, Min call: 0
+INFO - --- SHOWDOWN ---
+INFO - ===ROUND: Stage.SHOWDOWN ===
+INFO - Player 3 won: TwoPair
+INFO - Returning side pots
+INFO - Player (seat 0) terminal reward: 363.59194480534643 (stack: 0.00 -> 363.59)
+INFO - Player (seat 1) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 2) terminal reward: 245.7591615335573 (stack: 0.00 -> 245.76)
+INFO - Player (seat 3) terminal reward: 11091.020329855239 (stack: 0.00 -> 11091.02)
+INFO - Player (seat 4) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 5) terminal reward: 0.0 (stack: 3912.88 -> 3912.88)
+INFO - Player (seat 6) terminal reward: 0.0 (stack: 3805.45 -> 3805.45)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 3400.00 → Final: 363.59 | P&L: -3036.41 (-89.3%)
+Seat 1: Initial: 1148.98 → Final: 0.00 | P&L: -1148.98 (-100.0%)
+Seat 2: Initial: 3282.17 → Final: 245.76 | P&L: -3036.41 (-92.5%)
+Seat 3: Initial: 3036.41 → Final: 11091.02 | P&L: +8054.61 (+265.3%)
+Seat 4: Initial: 709.10 → Final: 0.00 | P&L: -709.10 (-100.0%)
+Seat 5: Initial: 3967.17 → Final: 3912.88 | P&L: -54.29 (-1.4%)
+Seat 6: Initial: 3874.88 → Final: 3805.45 | P&L: -69.43 (-1.8%)
+==================================================
+INFO - Episode 196/1000: 5 players (4 AC)
+INFO - Dealer position set to seat 4
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 4
+INFO - Dealer is at position 4
+INFO - Player 0 got ['KD', '9C'] and $1073.6808714283688
+INFO - Player 1 got ['2C', '4S'] and $1617.4657661076128
+INFO - Player 2 got ['4C', 'TD'] and $1466.7824104640204
+INFO - Player 3 got ['7H', '3S'] and $2109.801410345355
+INFO - Player 4 got ['AC', '9D'] and $1225.2785505348133
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 4 (CentralAC): Action.SMALL_BLIND - Remaining stack: 1224.2785505348133, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0       
+INFO - Seat 0 (CentralAC): Action.BIG_BLIND - Remaining stack: 1071.6808714283688, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 1 (CentralAC): Action.BET_3_4_POT - Remaining stack: 1611.7157661076128, Round pot: 8.75, Community pot: 0, player pot: 5.75, min_call: 5.75, last_raise_amount: 3.75   
+INFO - Agent (seat 1) incremental reward calculation: current_stack=1611.72, previous_stack=1617.47, reward=-5.75
+INFO - Seat 2 (CentralAC): Action.FOLD - Remaining stack: 1466.7824104640204, Round pot: 8.75, Community pot: 0, player pot: 0, min_call: 5.75, last_raise_amount: 3.75
+INFO - Agent (seat 2) incremental reward calculation: current_stack=1466.78, previous_stack=1466.78, reward=0.00
+INFO - Seat 3 (Random_3): Action.BET_MIN_RAISE - Remaining stack: 2100.301410345355, Round pot: 18.25, Community pot: 0, player pot: 9.5, min_call: 9.5, last_raise_amount: 3.75    
+INFO - Agent (seat 3) incremental reward calculation: current_stack=2100.30, previous_stack=2109.80, reward=-9.50
+INFO - Seat 4 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 1212.0285505348133, Round pot: 30.5, Community pot: 0, player pot: 13.25, min_call: 13.25, last_raise_amount: 3.75
+INFO - Agent (seat 4) incremental reward calculation: current_stack=1212.03, previous_stack=1225.28, reward=-13.25
+INFO - Seat 0 (CentralAC): Action.BET_1_2_POT - Remaining stack: 1039.5558714283688, Round pot: 62.625, Community pot: 0, player pot: 34.125, min_call: 34.125, last_raise_amount: 20.875
+INFO - Agent (seat 0) incremental reward calculation: current_stack=1039.56, previous_stack=1073.68, reward=-34.12
+INFO - Seat 1 (CentralAC): Action.BET_POT - Remaining stack: 1492.3407661076128, Round pot: 182.0, Community pot: 0, player pot: 125.125, min_call: 125.125, last_raise_amount: 91.0
+INFO - Agent (seat 1) incremental reward calculation: current_stack=1492.34, previous_stack=1611.72, reward=-119.38
+INFO - Seat 3 (Random_3): Action.FOLD - Remaining stack: 2100.301410345355, Round pot: 182.0, Community pot: 0, player pot: 9.5, min_call: 125.125, last_raise_amount: 91.0
+INFO - Agent (seat 3) incremental reward calculation: current_stack=2100.30, previous_stack=2100.30, reward=0.00
+INFO - Seat 4 (CentralAC): Action.BET_POT - Remaining stack: 806.2785505348133, Round pot: 587.75, Community pot: 0, player pot: 419.0, min_call: 419.0, last_raise_amount: 293.875 
+INFO - Agent (seat 4) incremental reward calculation: current_stack=806.28, previous_stack=1212.03, reward=-405.75
+INFO - Seat 0 (CentralAC): Action.FOLD - Remaining stack: 1039.5558714283688, Round pot: 587.75, Community pot: 0, player pot: 34.125, min_call: 419.0, last_raise_amount: 293.875  
+INFO - Agent (seat 0) incremental reward calculation: current_stack=1039.56, previous_stack=1039.56, reward=0.00
+INFO - Seat 1 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 2080.0907661076126, Community pot: 0, player pot: 1617.4657661076128, min_call: 1617.4657661076128, last_raise_amount: 1198.4657661076128
+INFO - Agent (seat 1) incremental reward calculation: current_stack=0.00, previous_stack=1492.34, reward=-1492.34
+INFO - Seat 4 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 2886.369316642426, Community pot: 0, player pot: 1225.2785505348133, min_call: 1617.4657661076128, last_raise_amount: 1198.4657661076128
+INFO - Agent (seat 4) incremental reward calculation: current_stack=0.00, previous_stack=806.28, reward=-806.28
+INFO - All non-folded players are all-in. Dealing remaining community cards and going to showdown.
+INFO - Closing round. Community pot: 0, Current round pot: 2886.369316642426, Min call: 1617.4657661076128
+INFO - Cards on table: ['9H', '2H', 'QH']
+INFO - --- FLOP ---
+INFO - ===ROUND: Stage.FLOP ===
+INFO - Closing round. Community pot: 2886.3693166424264, Current round pot: 0, Min call: 0
+INFO - Cards on table: ['9H', '2H', 'QH', '6S']
+INFO - --- TURN ---
+INFO - ===ROUND: Stage.TURN ===
+INFO - Closing round. Community pot: 2886.3693166424264, Current round pot: 0, Min call: 0
+INFO - Cards on table: ['9H', '2H', 'QH', '6S', 'TH']
+INFO - --- RIVER ---
+INFO - ===ROUND: Stage.RIVER ===
+INFO - Closing round. Community pot: 2886.3693166424264, Current round pot: 0, Min call: 0
+INFO - --- SHOWDOWN ---
+INFO - ===ROUND: Stage.SHOWDOWN ===
+INFO - Player 4 won: Pair
+INFO - Returning side pots
+INFO - Player (seat 0) terminal reward: 0.0 (stack: 1039.56 -> 1039.56)
+INFO - Player (seat 1) terminal reward: 392.18721557279946 (stack: 0.00 -> 392.19)
+INFO - Player (seat 2) terminal reward: 0.0 (stack: 1466.78 -> 1466.78)
+INFO - Player (seat 3) terminal reward: 0.0 (stack: 2100.30 -> 2100.30)
+INFO - Player (seat 4) terminal reward: 2494.1821010696267 (stack: 0.00 -> 2494.18)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 1073.68 → Final: 1039.56 | P&L: -34.12 (-3.2%)
+Seat 1: Initial: 1617.47 → Final: 392.19 | P&L: -1225.28 (-75.8%)
+Seat 2: Initial: 1466.78 → Final: 1466.78 | P&L: +0.00 (+0.0%)
+Seat 3: Initial: 2109.80 → Final: 2100.30 | P&L: -9.50 (-0.5%)
+Seat 4: Initial: 1225.28 → Final: 2494.18 | P&L: +1268.90 (+103.6%)
+==================================================
+INFO - Episode 197/1000: 5 players (4 AC)
+INFO - Dealer position set to seat 2
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 2
+INFO - Dealer is at position 2
+INFO - Player 0 got ['QD', '3S'] and $1932.0636009616019
+INFO - Player 1 got ['2H', '7H'] and $1230.6314262232263
+INFO - Player 2 got ['6S', '2C'] and $3746.3700134754727
+INFO - Player 3 got ['TH', '6H'] and $2998.9961795495824
+INFO - Player 4 got ['QH', 'TC'] and $619.1488354688889
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 2 (Random_2): Action.SMALL_BLIND - Remaining stack: 3745.3700134754727, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0        
+INFO - Seat 3 (CentralAC): Action.BIG_BLIND - Remaining stack: 2996.9961795495824, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 4 (CentralAC): Action.CALL - Remaining stack: 617.1488354688889, Round pot: 5.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Agent (seat 4) incremental reward calculation: current_stack=617.15, previous_stack=619.15, reward=-2.00
+INFO - Seat 0 (CentralAC): Action.CALL - Remaining stack: 1930.0636009616019, Round pot: 7.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Agent (seat 0) incremental reward calculation: current_stack=1930.06, previous_stack=1932.06, reward=-2.00
+INFO - Seat 1 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 1237.6314262232263, Community pot: 0, player pot: 1230.6314262232263, min_call: 1230.6314262232263, last_raise_amount: 1228.6314262232263
+INFO - Agent (seat 1) incremental reward calculation: current_stack=0.00, previous_stack=1230.63, reward=-1230.63
+INFO - Seat 2 (Random_2): Action.BET_3_4_POT - Remaining stack: 665.2914479174069, Round pot: 4317.709991781292, Community pot: 0, player pot: 3081.0785655580657, min_call: 3081.0785655580657, last_raise_amount: 1850.4471393348394
+INFO - Agent (seat 2) incremental reward calculation: current_stack=665.29, previous_stack=3746.37, reward=-3081.08
+INFO - Seat 3 (CentralAC): Action.FOLD - Remaining stack: 2996.9961795495824, Round pot: 4317.709991781292, Community pot: 0, player pot: 2.0, min_call: 3081.0785655580657, last_raise_amount: 1850.4471393348394
+INFO - Agent (seat 3) incremental reward calculation: current_stack=2997.00, previous_stack=2999.00, reward=-2.00
+INFO - Seat 4 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 4934.858827250181, Community pot: 0, player pot: 619.1488354688889, min_call: 3081.0785655580657, last_raise_amount: 1850.4471393348394
+INFO - Agent (seat 4) incremental reward calculation: current_stack=0.00, previous_stack=617.15, reward=-617.15
+INFO - Seat 0 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 6864.922428211783, Community pot: 0, player pot: 1932.0636009616019, min_call: 3081.0785655580657, last_raise_amount: 1850.4471393348394
+INFO - Agent (seat 0) incremental reward calculation: current_stack=0.00, previous_stack=1930.06, reward=-1930.06
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 0, Current round pot: 6864.922428211783, Min call: 3081.0785655580657
+INFO - Cards on table: ['4D', '4S', '9D']
+INFO - --- FLOP ---
+INFO - ===ROUND: Stage.FLOP ===
+INFO - Seat 2 (Random_2): Action.ALL_IN - Remaining stack: 0.0, Round pot: 665.2914479174069, Community pot: 6864.922428211783, player pot: 665.2914479174069, min_call: 665.2914479174069, last_raise_amount: 665.2914479174069
+INFO - Agent (seat 2) incremental reward calculation: current_stack=0.00, previous_stack=665.29, reward=-665.29
+INFO - All non-folded players are all-in. Dealing remaining community cards and going to showdown.
+INFO - Closing round. Community pot: 6864.922428211783, Current round pot: 665.2914479174069, Min call: 665.2914479174069
+INFO - Cards on table: ['4D', '4S', '9D', '8H']
+INFO - --- TURN ---
+INFO - ===ROUND: Stage.TURN ===
+INFO - Closing round. Community pot: 7530.21387612919, Current round pot: 0, Min call: 0
+INFO - Cards on table: ['4D', '4S', '9D', '8H', '9C']
+INFO - --- RIVER ---
+INFO - ===ROUND: Stage.RIVER ===
+INFO - Closing round. Community pot: 7530.21387612919, Current round pot: 0, Min call: 0
+INFO - --- SHOWDOWN ---
+INFO - ===ROUND: Stage.SHOWDOWN ===
+INFO - Player 0 won: TwoPair
+INFO - Returning side pots
+INFO - Player (seat 0) terminal reward: 5715.907463615319 (stack: 0.00 -> 5715.91)
+INFO - Player (seat 1) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 2) terminal reward: 1814.3064125138708 (stack: 0.00 -> 1814.31)
+INFO - Player (seat 3) terminal reward: 0.0 (stack: 2997.00 -> 2997.00)
+INFO - Player (seat 4) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 1932.06 → Final: 5715.91 | P&L: +3783.84 (+195.8%)
+Seat 1: Initial: 1230.63 → Final: 0.00 | P&L: -1230.63 (-100.0%)
+Seat 2: Initial: 3746.37 → Final: 1814.31 | P&L: -1932.06 (-51.6%)
+Seat 3: Initial: 2999.00 → Final: 2997.00 | P&L: -2.00 (-0.1%)
+Seat 4: Initial: 619.15 → Final: 0.00 | P&L: -619.15 (-100.0%)
+==================================================
+INFO - Episode 198/1000: 2 players (1 AC)
+INFO - Dealer position set to seat 1
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 1
+INFO - Dealer is at position 1
+INFO - Player 0 got ['TH', '8S'] and $712.1234522017296
+INFO - Player 1 got ['6D', '2C'] and $720.5262263524539
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 1 (CentralAC): Action.SMALL_BLIND - Remaining stack: 719.5262263524539, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0        
+INFO - Seat 0 (Random_0): Action.BIG_BLIND - Remaining stack: 710.1234522017296, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 1 (CentralAC): Action.CALL - Remaining stack: 718.5262263524539, Round pot: 4.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Agent (seat 1) incremental reward calculation: current_stack=718.53, previous_stack=720.53, reward=-2.00
+INFO - Seat 0 (Random_0): Action.BET_POT - Remaining stack: 706.1234522017296, Round pot: 8.0, Community pot: 0, player pot: 6.0, min_call: 6.0, last_raise_amount: 4.0
+INFO - Agent (seat 0) incremental reward calculation: current_stack=706.12, previous_stack=712.12, reward=-6.00
+INFO - Seat 1 (CentralAC): Action.BET_3_2_POT - Remaining stack: 696.5262263524539, Round pot: 30.0, Community pot: 0, player pot: 24.0, min_call: 24.0, last_raise_amount: 18.0    
+INFO - Agent (seat 1) incremental reward calculation: current_stack=696.53, previous_stack=718.53, reward=-22.00
+INFO - Seat 0 (Random_0): Action.CALL - Remaining stack: 688.1234522017296, Round pot: 48.0, Community pot: 0, player pot: 24.0, min_call: 24.0, last_raise_amount: 18.0
+INFO - Agent (seat 0) incremental reward calculation: current_stack=688.12, previous_stack=706.12, reward=-18.00
+INFO - Seat 1 (CentralAC): Action.CHECK - Remaining stack: 696.5262263524539, Round pot: 48.0, Community pot: 0, player pot: 24.0, min_call: 24.0, last_raise_amount: 18.0
+INFO - Agent (seat 1) incremental reward calculation: current_stack=696.53, previous_stack=696.53, reward=0.00
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 0, Current round pot: 48.0, Min call: 24.0
+INFO - Cards on table: ['KS', '3H', '7D']
+INFO - --- FLOP ---
+INFO - ===ROUND: Stage.FLOP ===
+INFO - Seat 0 (Random_0): Action.BET_1_2_POT - Remaining stack: 664.1234522017296, Round pot: 24.0, Community pot: 48.0, player pot: 24.0, min_call: 24.0, last_raise_amount: 24.0  
+INFO - Agent (seat 0) incremental reward calculation: current_stack=664.12, previous_stack=688.12, reward=-24.00
+INFO - Seat 1 (CentralAC): Action.CALL - Remaining stack: 672.5262263524539, Round pot: 48.0, Community pot: 48.0, player pot: 24.0, min_call: 24.0, last_raise_amount: 24.0        
+INFO - Agent (seat 1) incremental reward calculation: current_stack=672.53, previous_stack=696.53, reward=-24.00
+INFO - Seat 0 (Random_0): Action.BET_2_POT - Remaining stack: 472.1234522017296, Round pot: 240.0, Community pot: 48.0, player pot: 216.0, min_call: 216.0, last_raise_amount: 192.0
+INFO - Agent (seat 0) incremental reward calculation: current_stack=472.12, previous_stack=664.12, reward=-192.00
+INFO - Seat 1 (CentralAC): Action.BET_3_4_POT - Remaining stack: 120.52622635245393, Round pot: 792.0, Community pot: 48.0, player pot: 576.0, min_call: 576.0, last_raise_amount: 360.0
+INFO - Agent (seat 1) incremental reward calculation: current_stack=120.53, previous_stack=672.53, reward=-552.00
+INFO - Seat 0 (Random_0): Action.FOLD - Remaining stack: 472.1234522017296, Round pot: 792.0, Community pot: 48.0, player pot: 216.0, min_call: 576.0, last_raise_amount: 360.0     
+INFO - Agent (seat 0) incremental reward calculation: current_stack=472.12, previous_stack=472.12, reward=0.00
+INFO - Only one player remaining in round
+INFO - Player 1 won: Only remaining player in round
+INFO - Player (seat 0) terminal reward: 0.0 (stack: 472.12 -> 472.12)
+INFO - Player (seat 1) terminal reward: 840.0 (stack: 120.53 -> 960.53)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 712.12 → Final: 472.12 | P&L: -240.00 (-33.7%)
+Seat 1: Initial: 720.53 → Final: 960.53 | P&L: +240.00 (+33.3%)
+==================================================
+INFO - Episode 199/1000: 5 players (5 AC)
+INFO - Dealer position set to seat 3
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 3
+INFO - Dealer is at position 3
+INFO - Player 0 got ['7H', 'QD'] and $2378.621706602823
+INFO - Player 1 got ['3S', '6D'] and $3912.798610582487
+INFO - Player 2 got ['2S', '8S'] and $3240.7591613954737
+INFO - Player 3 got ['AS', 'KH'] and $3170.6879577314708
+INFO - Player 4 got ['8H', '3H'] and $3981.460566628879
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 3 (CentralAC): Action.SMALL_BLIND - Remaining stack: 3169.6879577314708, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0       
+INFO - Seat 4 (CentralAC): Action.BIG_BLIND - Remaining stack: 3979.460566628879, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 0 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 2381.621706602823, Community pot: 0, player pot: 2378.621706602823, min_call: 2378.621706602823, last_raise_amount: 2376.621706602823
+INFO - Agent (seat 0) incremental reward calculation: current_stack=0.00, previous_stack=2378.62, reward=-2378.62
+INFO - Seat 1 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 6294.42031718531, Community pot: 0, player pot: 3912.798610582487, min_call: 3912.798610582487, last_raise_amount: 1534.176903979664
+INFO - Agent (seat 1) incremental reward calculation: current_stack=0.00, previous_stack=3912.80, reward=-3912.80
+INFO - Seat 2 (CentralAC): Action.CALL - Remaining stack: 0.0, Round pot: 9535.179478580783, Community pot: 0, player pot: 3240.7591613954737, min_call: 3912.798610582487, last_raise_amount: 1534.176903979664
+INFO - Agent (seat 2) incremental reward calculation: current_stack=0.00, previous_stack=3240.76, reward=-3240.76
+INFO - Seat 3 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 12704.867436312254, Community pot: 0, player pot: 3170.6879577314708, min_call: 3912.798610582487, last_raise_amount: 1534.176903979664
+INFO - Agent (seat 3) incremental reward calculation: current_stack=0.00, previous_stack=3170.69, reward=-3170.69
+INFO - Seat 4 (CentralAC): Action.CALL - Remaining stack: 68.66195604639188, Round pot: 16615.66604689474, Community pot: 0, player pot: 3912.798610582487, min_call: 3912.798610582487, last_raise_amount: 1534.176903979664
+INFO - Agent (seat 4) incremental reward calculation: current_stack=68.66, previous_stack=3981.46, reward=-3912.80
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 0, Current round pot: 16615.66604689474, Min call: 3912.798610582487
+INFO - Cards on table: ['9S', 'KS', 'TC']
+INFO - --- FLOP ---
+INFO - ===ROUND: Stage.FLOP ===
+INFO - Seat 4 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 66.66195604639188, Round pot: 2, Community pot: 16615.66604689474, player pot: 2, min_call: 2, last_raise_amount: 2
+INFO - Agent (seat 4) incremental reward calculation: current_stack=66.66, previous_stack=68.66, reward=-2.00
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 16615.66604689474, Current round pot: 2, Min call: 2
+INFO - Cards on table: ['9S', 'KS', 'TC', 'JH']
+INFO - --- TURN ---
+INFO - ===ROUND: Stage.TURN ===
+INFO - Seat 4 (CentralAC): Action.BET_MIN_RAISE - Remaining stack: 64.66195604639188, Round pot: 2, Community pot: 16617.66604689474, player pot: 2, min_call: 2, last_raise_amount: 2
+INFO - Agent (seat 4) incremental reward calculation: current_stack=64.66, previous_stack=66.66, reward=-2.00
+INFO - Betting round complete.
+INFO - Closing round. Community pot: 16617.66604689474, Current round pot: 2, Min call: 2
+INFO - Cards on table: ['9S', 'KS', 'TC', 'JH', '6S']
+INFO - --- RIVER ---
+INFO - ===ROUND: Stage.RIVER ===
+INFO - Seat 4 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 64.66195604639188, Community pot: 16619.66604689474, player pot: 64.66195604639188, min_call: 64.66195604639188, last_raise_amount: 64.66195604639188
+INFO - Agent (seat 4) incremental reward calculation: current_stack=0.00, previous_stack=64.66, reward=-64.66
+INFO - All non-folded players are all-in. Dealing remaining community cards and going to showdown.
+INFO - Closing round. Community pot: 16619.66604689474, Current round pot: 64.66195604639188, Min call: 64.66195604639188
+INFO - --- SHOWDOWN ---
+INFO - ===ROUND: Stage.SHOWDOWN ===
+INFO - Player 2 won: Flush
+INFO - Returning side pots
+INFO - Player (seat 0) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 1) terminal reward: 672.0394491870134 (stack: 0.00 -> 672.04)
+INFO - Player (seat 2) terminal reward: 15271.587148520714 (stack: 0.00 -> 15271.59)
+INFO - Player (seat 3) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 4) terminal reward: 740.7014052334052 (stack: 0.00 -> 740.70)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 2378.62 → Final: 0.00 | P&L: -2378.62 (-100.0%)
+Seat 1: Initial: 3912.80 → Final: 672.04 | P&L: -3240.76 (-82.8%)
+Seat 2: Initial: 3240.76 → Final: 15271.59 | P&L: +12030.83 (+371.2%)
+Seat 3: Initial: 3170.69 → Final: 0.00 | P&L: -3170.69 (-100.0%)
+Seat 4: Initial: 3981.46 → Final: 740.70 | P&L: -3240.76 (-81.4%)
+==================================================
+INFO - Episode 200/1000: 10 players (9 AC)
+INFO - Dealer position set to seat 0
+INFO - ++++++++++++++++++
+INFO - Starting new hand.
+INFO - ++++++++++++++++++
+INFO - Using overridden dealer position: seat 0
+INFO - Dealer is at position 0
+INFO - Player 0 got ['QH', 'JS'] and $2605.217633900477
+INFO - Player 1 got ['4C', 'AH'] and $1707.2907391822257
+INFO - Player 2 got ['AS', '6D'] and $2461.11659753958
+INFO - Player 3 got ['KD', 'TS'] and $2856.771773713005
+INFO - Player 4 got ['TC', '4D'] and $604.2877022847649
+INFO - Player 5 got ['2H', 'KS'] and $1366.8214215081605
+INFO - Player 6 got ['3C', 'JH'] and $3847.108421855696
+INFO - Player 7 got ['JC', 'TD'] and $2040.0282776495444
+INFO - Player 8 got ['6C', 'QS'] and $3375.6646370561557
+INFO - Player 9 got ['5H', 'JD'] and $3828.114670315183
+INFO -
+INFO - ===Round: Stage: PREFLOP
+INFO - Seat 0 (CentralAC): Action.SMALL_BLIND - Remaining stack: 2604.217633900477, Round pot: 1.0, Community pot: 0, player pot: 1.0, min_call: 1.0, last_raise_amount: 1.0        
+INFO - Seat 1 (CentralAC): Action.BIG_BLIND - Remaining stack: 1705.2907391822257, Round pot: 3.0, Community pot: 0, player pot: 2.0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Seat 2 (CentralAC): Action.FOLD - Remaining stack: 2461.11659753958, Round pot: 3.0, Community pot: 0, player pot: 0, min_call: 2.0, last_raise_amount: 1.0
+INFO - Agent (seat 2) incremental reward calculation: current_stack=2461.12, previous_stack=2461.12, reward=0.00
+INFO - Seat 3 (CentralAC): Action.BET_2_3_POT - Remaining stack: 2851.471773713005, Round pot: 8.3, Community pot: 0, player pot: 5.300000000000001, min_call: 5.300000000000001, last_raise_amount: 3.3000000000000007
+INFO - Agent (seat 3) incremental reward calculation: current_stack=2851.47, previous_stack=2856.77, reward=-5.30
+INFO - Seat 4 (CentralAC): Action.BET_1_4_POT - Remaining stack: 595.5877022847649, Round pot: 17.0, Community pot: 0, player pot: 8.700000000000001, min_call: 8.700000000000001, last_raise_amount: 3.4000000000000004
+INFO - Agent (seat 4) incremental reward calculation: current_stack=595.59, previous_stack=604.29, reward=-8.70
+INFO - Seat 5 (Random_5): Action.BET_POT - Remaining stack: 1332.4214215081604, Round pot: 51.400000000000006, Community pot: 0, player pot: 34.400000000000006, min_call: 34.400000000000006, last_raise_amount: 25.700000000000003
+INFO - Agent (seat 5) incremental reward calculation: current_stack=1332.42, previous_stack=1366.82, reward=-34.40
+INFO - Seat 6 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 3898.5084218556963, Community pot: 0, player pot: 3847.108421855696, min_call: 3847.108421855696, last_raise_amount: 3812.708421855696
+INFO - Agent (seat 6) incremental reward calculation: current_stack=0.00, previous_stack=3847.11, reward=-3847.11
+INFO - Seat 7 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 5938.536699505241, Community pot: 0, player pot: 2040.0282776495444, min_call: 3847.108421855696, last_raise_amount: 3812.708421855696
+INFO - Agent (seat 7) incremental reward calculation: current_stack=0.00, previous_stack=2040.03, reward=-2040.03
+INFO - Seat 8 (CentralAC): Action.FOLD - Remaining stack: 3375.6646370561557, Round pot: 5938.536699505241, Community pot: 0, player pot: 0, min_call: 3847.108421855696, last_raise_amount: 3812.708421855696
+INFO - Agent (seat 8) incremental reward calculation: current_stack=3375.66, previous_stack=3375.66, reward=0.00
+INFO - Seat 9 (CentralAC): Action.CALL - Remaining stack: 0.0, Round pot: 9766.651369820423, Community pot: 0, player pot: 3828.114670315183, min_call: 3847.108421855696, last_raise_amount: 3812.708421855696
+INFO - Agent (seat 9) incremental reward calculation: current_stack=0.00, previous_stack=3828.11, reward=-3828.11
+INFO - Seat 0 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 12370.8690037209, Community pot: 0, player pot: 2605.217633900477, min_call: 3847.108421855696, last_raise_amount: 3812.708421855696
+INFO - Agent (seat 0) incremental reward calculation: current_stack=0.00, previous_stack=2605.22, reward=-2605.22
+INFO - Seat 1 (CentralAC): Action.FOLD - Remaining stack: 1705.2907391822257, Round pot: 12370.8690037209, Community pot: 0, player pot: 2.0, min_call: 3847.108421855696, last_raise_amount: 3812.708421855696
+INFO - Agent (seat 1) incremental reward calculation: current_stack=1705.29, previous_stack=1707.29, reward=-2.00
+INFO - Seat 3 (CentralAC): Action.ALL_IN - Remaining stack: 0.0, Round pot: 15222.340777433905, Community pot: 0, player pot: 2856.771773713005, min_call: 3847.108421855696, last_raise_amount: 3812.708421855696
+INFO - Agent (seat 3) incremental reward calculation: current_stack=0.00, previous_stack=2851.47, reward=-2851.47
+INFO - Seat 4 (CentralAC): Action.CALL - Remaining stack: 0.0, Round pot: 15817.92847971867, Community pot: 0, player pot: 604.2877022847649, min_call: 3847.108421855696, last_raise_amount: 3812.708421855696
+INFO - Agent (seat 4) incremental reward calculation: current_stack=0.00, previous_stack=595.59, reward=-595.59
+INFO - Seat 5 (Random_5): Action.FOLD - Remaining stack: 1332.4214215081604, Round pot: 15817.92847971867, Community pot: 0, player pot: 34.400000000000006, min_call: 3847.108421855696, last_raise_amount: 3812.708421855696
+INFO - Agent (seat 5) incremental reward calculation: current_stack=1332.42, previous_stack=1332.42, reward=0.00
+INFO - All non-folded players are all-in. Dealing remaining community cards and going to showdown.
+INFO - Closing round. Community pot: 0, Current round pot: 15817.92847971867, Min call: 3847.108421855696
+INFO - Cards on table: ['2D', '5S', '5D']
+INFO - --- FLOP ---
+INFO - ===ROUND: Stage.FLOP ===
+INFO - Closing round. Community pot: 15817.92847971867, Current round pot: 0, Min call: 0
+INFO - Cards on table: ['2D', '5S', '5D', '4H']
+INFO - --- TURN ---
+INFO - ===ROUND: Stage.TURN ===
+INFO - Closing round. Community pot: 15817.92847971867, Current round pot: 0, Min call: 0
+INFO - Cards on table: ['2D', '5S', '5D', '4H', '9S']
+INFO - --- RIVER ---
+INFO - ===ROUND: Stage.RIVER ===
+INFO - Closing round. Community pot: 15817.92847971867, Current round pot: 0, Min call: 0
+INFO - --- SHOWDOWN ---
+INFO - ===ROUND: Stage.SHOWDOWN ===
+INFO - Player 9 won: ThreeOfAKind
+INFO - Returning side pots
+INFO - Player (seat 0) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 1) terminal reward: 0.0 (stack: 1705.29 -> 1705.29)
+INFO - Player (seat 2) terminal reward: 0.0 (stack: 2461.12 -> 2461.12)
+INFO - Player (seat 3) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 4) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 5) terminal reward: 0.0 (stack: 1332.42 -> 1332.42)
+INFO - Player (seat 6) terminal reward: 18.99375154051313 (stack: 0.00 -> 18.99)
+INFO - Player (seat 7) terminal reward: 0.0 (stack: 0.00 -> 0.00)
+INFO - Player (seat 8) terminal reward: 0.0 (stack: 3375.66 -> 3375.66)
+INFO - Player (seat 9) terminal reward: 15798.934728178157 (stack: 0.00 -> 15798.93)
+
+==================================================
+HAND ENDED - RESULTS
+==================================================
+Seat 0: Initial: 2605.22 → Final: 0.00 | P&L: -2605.22 (-100.0%)
+Seat 1: Initial: 1707.29 → Final: 1705.29 | P&L: -2.00 (-0.1%)
+Seat 2: Initial: 2461.12 → Final: 2461.12 | P&L: +0.00 (+0.0%)
+Seat 3: Initial: 2856.77 → Final: 0.00 | P&L: -2856.77 (-100.0%)
+Seat 4: Initial: 604.29 → Final: 0.00 | P&L: -604.29 (-100.0%)
+Seat 5: Initial: 1366.82 → Final: 1332.42 | P&L: -34.40 (-2.5%)
+Seat 6: Initial: 3847.11 → Final: 18.99 | P&L: -3828.11 (-99.5%)
+Seat 7: Initial: 2040.03 → Final: 0.00 | P&L: -2040.03 (-100.0%)
+Seat 8: Initial: 3375.66 → Final: 3375.66 | P&L: +0.00 (+0.0%)
+Seat 9: Initial: 3828.11 → Final: 15798.93 | P&L: +11970.82 (+312.7%)
+==================================================
+Traceback (most recent call last):
+  File "C:\Users\kaiwyang\Desktop\Reinforcement Learning\DeepHoldem\main.py", line 214, in <module>
+    command_line_parser()
+  File "C:\Users\kaiwyang\Desktop\Reinforcement Learning\DeepHoldem\main.py", line 74, in command_line_parser
+    runner.ac_train(load_path)
+  File "C:\Users\kaiwyang\Desktop\Reinforcement Learning\DeepHoldem\main.py", line 150, in ac_train
+    central_agent.update(all_experiences)
+  File "C:\Users\kaiwyang\Desktop\Reinforcement Learning\DeepHoldem\agents\ac_agent.py", line 348, in update
+    policy_logits, values = self.network(states)
+                            ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kaiwyang\anaconda3\Lib\site-packages\torch\nn\modules\module.py", line 1511, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kaiwyang\anaconda3\Lib\site-packages\torch\nn\modules\module.py", line 1520, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kaiwyang\Desktop\Reinforcement Learning\DeepHoldem\agents\network.py", line 135, in forward
+    packed_seq = nn.utils.rnn.pack_padded_sequence(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kaiwyang\anaconda3\Lib\site-packages\torch\nn\utils\rnn.py", line 264, in pack_padded_sequence
+    _VF._pack_padded_sequence(input, lengths, batch_first)
+RuntimeError: Length of all samples has to be greater than 0, but found an element in 'lengths' that is <= 0

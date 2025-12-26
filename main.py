@@ -25,8 +25,13 @@ options:
 
 """
 
-import logging
+import os
 
+# Fix for Windows DLL error: [WinError 1114]
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+import logging
+import torch
 import numpy as np
 import pandas as pd
 from docopt import docopt
@@ -50,7 +55,7 @@ def command_line_parser():
         logfile = "default"
     model_name = args["--name"] if args["--name"] else "dqn1"
     screenloglevel = (
-        logging.INFO
+        logging.WARNING
         if not args["--screenloglevel"]
         else getattr(logging, args["--screenloglevel"].upper())
     )
@@ -66,10 +71,7 @@ def command_line_parser():
             stack=int(args["--stack"]),
         )
 
-        if args["random"]:
-            runner.random_agents()
-
-        elif args["keypress"]:
+        if args["keypress"]:
             runner.key_press_agents()
 
         elif args["ac_train"]:
@@ -153,7 +155,7 @@ class GameRunner:
             central_agent.update(all_experiences)
 
             # Save periodically
-            if (episode + 1) % 100 == 0:
+            if (episode + 1) % 10000 == 0:
                 central_agent.save(f"models/ac_agent_{episode+1}.pt")
 
     def key_press_agents(self):

@@ -52,7 +52,7 @@ class KeypressAgent:
                 selected_action = action_mapping.get(choice)
 
                 if selected_action in legal_actions:
-                    return selected_action
+                    return selected_action, {}
                 else:
                     print(
                         f"Action {choice} is not legal. Choose from: {[a.value for a in legal_actions]}"
@@ -60,4 +60,4 @@ class KeypressAgent:
             except ValueError:
                 print("Please enter a valid number.")
             except KeyboardInterrupt:
-                return Action.FOLD  # Default to fold on Ctrl+C
+                return Action.FOLD, {}  # Default to fold on Ctrl+C

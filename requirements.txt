@@ -11,3 +11,4 @@ setuptools>=80.9.0
 numpy>=1.18.0,<2.0
 cloudpickle>=1.2.0
 torch>=2.0.0
+intel-openmp>=2021.4.0
