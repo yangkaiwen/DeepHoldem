@@ -98,7 +98,8 @@ class GameRunner:
         Run training with Actor-Critic agents.
         Multiple agents share the same network and learn from all experiences.
         """
-        from agents.ac_agent import PokerACAgent, RandomAgent
+        from agents.ac_agent import PokerACAgent
+        from agents.random_agent import RandomAgent
 
         # Create ONE central agent instance
         central_agent = PokerACAgent(name="CentralAC", device="auto")
@@ -160,7 +161,7 @@ class GameRunner:
 
     def key_press_agents(self):
         """Create an environment with key press agents"""
-        from agents.agent_keypress import KeypressAgent
+        from agents.keypress_agent import KeypressAgent
 
         num_of_plrs = 3
         self.env = HoldemTable(initial_stacks=self.stack)

@@ -192,9 +192,15 @@ class PlayerCycle:
                 self.last_aggressor_idx in non_folded_indices
                 and not self.out_of_cash_but_contributed[self.last_aggressor_idx]
             ):
-                if self.idx == self.last_aggressor_idx:
+                if self.preflop_no_raise:
+                    if self.idx == self.last_aggressor_idx:
+                        log.debug(
+                            f"Action returned to last aggressor at position {self.last_aggressor_idx}"
+                        )
+                        return True
+                else:
                     log.debug(
-                        f"Action returned to last aggressor at position {self.last_aggressor_idx}"
+                        "All players contributed equally after a raise. Round over."
                     )
                     return True
             else:

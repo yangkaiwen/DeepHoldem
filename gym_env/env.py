@@ -44,7 +44,6 @@ class StateHistoryRecorder:
     def reset(self):
         """Reset the ledger (empty it)."""
         self.ledger = ""
-        self.encode = []
 
 
 class StageData:
@@ -146,10 +145,10 @@ class HoldemTable:
         self.player_rewards = {}
         self.player_dones = {}
 
-        self.ledger = ""  # word representation of the game history and decision to make
         self.PARD = (
             []
         )  # a growing list encoding the Player, Action, Reward, Stack, Done
+        self.state_history_encoder = StateHistoryRecorder()
 
     def reset(self, seed=None, options=None):
         """Reset after game over - now resets to a new hand.
@@ -181,8 +180,7 @@ class HoldemTable:
         self.player_dones = {i: [] for i in range(len(self.players))}
 
         # Reset state history encoder
-        self.ledger = ""
-        self.encode = []
+        self.state_history_encoder.reset()
 
         if not self.players:
             log.warning("No agents added. Add agents before resetting the environment.")
@@ -212,9 +210,9 @@ class HoldemTable:
             self.dealer_pos = options["dealer_pos"]
             self.dealer_pos_override = True
             log.info(f"Dealer position set to seat {self.dealer_pos}")
-            # self.state_history_encoder.record(
-            #     f"Dealer position set to seat {self.dealer_pos}"
-            # )
+            self.state_history_encoder.record(
+                f"dealer position set to seat {self.dealer_pos}"
+            )
         else:
             self.dealer_pos = 0
             self.dealer_pos_override = False
@@ -280,6 +278,33 @@ class HoldemTable:
 
         return self.observation, self.reward, self.done, self.info
 
+    def process_state_recorder(self):
+        """
+        Process the state history recorder to generate a prompt for the LLM agent.
+        """
+        msg_starter = "Your are a Texas Hold'em playing agent. Based on the game history provided, choose your next action from the legal moves listed below by responding with ONLY the index of your chosen action.\n"
+
+        current_cards = str(self.current_player.cards)
+        num_players = len(self.players)
+        initial_stacks = str(self.hand_starting_stacks)
+        current_seat = self.current_player.seat
+        dealer_pos = self.dealer_pos
+        community_cards = str(self.table_cards) if self.table_cards else "[]"
+
+        msg_info = f"\n[IMPORTANT]You are seated at position: {current_seat}\nYour current cards are: {current_cards}\nCommunity cards: {community_cards}\nDealer(Button) position: {dealer_pos}\nTotal number of players at the table: {num_players}\nINITIAL player stacks: {initial_stacks}\n"
+
+        msg_explain = "\nCard notation: Suits are C=Clubs, D=Diamonds, H=Hearts, S=Spades. T stands for 10 (e.g., 'TH' = 10 of Hearts).\nPlayer seat starts from 0 to n-1 note that 0 is not necessarily the dealer. The play direction is from 0->1->2->...n-1->0 in clockwise direction just like a poker game.\nThe actions taken so far are recorded in the history below.\n\n\n"
+
+        history = self.state_history_encoder.ledger
+
+        msg = (
+            "\nIt is your turn to make a decision."
+            + "Here are the legal moves:\n"
+            + "\n".join([f"{a.value}: {a.name}" for a in self.legal_moves])
+            + "\nChoose the index of your available legal action and respond with ONLY the index."
+        )
+        return msg_starter + msg_info + msg_explain + history + msg
+
     def run(self, action=None):
         """
         Execute game flow iteratively until hand ends.
@@ -290,18 +315,30 @@ class HoldemTable:
             # Calculate legal moves before requesting action
             self._get_legal_moves()
 
-            msg = f"legal moves: {[a.name for a in self.legal_moves]}"
-            # self.state_history_encoder.record(msg)
-            self._get_environment()
-            action, action_info = self.current_player.agent_obj.action(
-                self.legal_moves, self.observation, self.info
+            msg = (
+                "\nLegal moves:\n"
+                + "\n".join([f"{a.value}: {a.name}" for a in self.legal_moves])
+                + "\n"
             )
+            self._get_environment()
 
-            msg = f"Player (seat {self.current_player.seat}) chose action: {action}"
+            if self.current_player.agent_obj.__class__.__name__ == "LLMAgent":
+                llm_prompt = self.process_state_recorder()
+                action, action_info = self.current_player.agent_obj.action(
+                    self.legal_moves, llm_prompt, self.info
+                )
+            else:
+                llm_prompt = self.process_state_recorder()
+                print("" + "=" * 80)
+                print(llm_prompt)
+                print("=" * 80 + "\n")
+                action, action_info = self.current_player.agent_obj.action(
+                    self.legal_moves, self.observation, self.info
+                )
+
+            msg = f"\nPlayer (seat {self.current_player.seat}) chose action: {action}\n"
             # self.state_history_encoder.record(msg)
-            # self.state_history_encoder.record_triplet(
-            #     self.current_player.seat, action.value, self.reward
-            # )
+            log.info(msg)
 
             # Process the action
             observation, reward, done, info = self.step(action)
@@ -505,9 +542,9 @@ class HoldemTable:
         # Update previous stack for next step
         self.previous_stacks[i] = current_stack
 
-        msg = f"Agent (seat {i}) incremental reward calculation: current_stack={current_stack:.2f}, previous_stack={previous_stack:.2f}, reward={self.reward:.2f}"
+        msg = f"Agent (seat {i}) incremental reward: current_stack={current_stack:.2f} previous_stack={previous_stack:.2f} reward={self.reward:.2f}\n"
         log.info(msg)
-        # self.state_history_encoder.record(msg)
+        self.state_history_encoder.record(msg)
 
     def _calculate_terminal_rewards(self):
         """
@@ -754,22 +791,17 @@ class HoldemTable:
         self.player_cycle.update_alive()
 
         msg = (
-            f"Seat {self.current_player.seat} ({self.current_player.name}): {action} - "
-            f"Remaining stack: {self.current_player.stack}, "
-            f"Round pot: {self.current_round_pot}, Community pot: {self.community_pot}, "
-            f"player pot: {self.player_pots[self.current_player.seat]}, min_call: {self.min_call}, "
-            f"last_raise_amount: {self.last_raise_amount}"
+            f"\nSeat {self.current_player.seat} ({self.current_player.name}): {action} - "
+            f"Remaining stack: {self.current_player.stack}\n"
+            f"Round pot: {self.current_round_pot}, Community pot: {self.community_pot},player pot: {self.player_pots[self.current_player.seat]}\n"
+            f"min_call: {self.min_call}, last_raise_amount: {self.last_raise_amount}\n"
         )
         log.info(msg)
-        # self.state_history_encoder.record(msg)
+        self.state_history_encoder.record(msg)
 
     def _start_new_hand(self):
         """Deal new cards to players and reset table states."""
-        log.info("++++++++++++++++++")
-        msg = "Starting new hand."
-        # self.state_history_encoder.record(msg)
-        log.info(msg)
-        log.info("++++++++++++++++++")
+        log.info("++++++++++++++++++\nStarting new hand.\n++++++++++++++++++")
         self.table_cards = []
         self._create_card_deck()
         self.stage = Stage.PREFLOP
@@ -832,8 +864,9 @@ class HoldemTable:
 
         if self.stage == Stage.PREFLOP:
             log.info("")
-            log.info("===Round: Stage: PREFLOP")
-            # self.state_history_encoder.record("===Round: Stage: PREFLOP")
+            log.info("===Round: Stage: PREFLOP===")
+            self.state_history_encoder.record("GAME STARTS!\n")
+            self.state_history_encoder.record("===Round: Stage: PREFLOP===\n")
 
             self._next_player()
             # Skip players with $0 stack when posting blinds
@@ -842,6 +875,9 @@ class HoldemTable:
                     f"Player {self.current_player.seat} has $0 stack, skipping small blind"
                 )
                 self._next_player()
+            # self.state_history_encoder.record(
+            #     f"\nSmall Blind is at position {self.current_player.seat}\n"
+            # )
             self._process_decision(Action.SMALL_BLIND)
 
             self._next_player()
@@ -852,6 +888,9 @@ class HoldemTable:
                 )
                 self._next_player()
             # Set bb_pos to current player's seat
+            # self.state_history_encoder.record(
+            #     f"\nBig Blind is at position {self.current_player.seat}\n"
+            # )
             self.bb_pos = self.current_player.seat
             self._process_decision(Action.BIG_BLIND)
 
@@ -933,9 +972,9 @@ class HoldemTable:
         elif self.stage == Stage.RIVER:
             self.stage = Stage.SHOWDOWN
             log.info("--- SHOWDOWN ---")
-        msg = f"===ROUND: {self.stage} ==="
+        msg = f"\n\n New round starts.\n===ROUND: {self.stage} ===\n"
         log.info(msg)
-        # self.state_history_encoder.record(msg)
+        self.state_history_encoder.record(msg)
         self._clean_up_pots()
 
     def _clean_up_pots(self):
@@ -1106,7 +1145,7 @@ class HoldemTable:
         self.winner_ix = winner_ix
         if total_winnings < sum(self.player_max_win):
             log.info("Returning side pots")
-            # self.state_history_encoder.record("Returning side pots")
+            self.state_history_encoder.record("Returning side pots\n")
             for i, player in enumerate(self.players):
                 player.stack += remains[i]
 
@@ -1123,6 +1162,9 @@ class HoldemTable:
             log.info(f"Using overridden dealer position: seat {self.dealer_pos}")
         else:
             self.dealer_pos = self.player_cycle.next_dealer().seat
+        # self.state_history_encoder.record(
+        #     f"\nDealer is at position {self.dealer_pos}\n"
+        # )
 
     def _next_player(self):
         """Move to the next player"""
@@ -1150,9 +1192,9 @@ class HoldemTable:
                 log.info("Only one player remaining in round")
                 self.stage = Stage.END_HIDDEN
             else:
-                msg = "Betting round complete."
+                msg = "Betting round complete.\n"
                 log.info(msg)
-                # self.state_history_encoder.record(msg)
+                self.state_history_encoder.record(msg)
                 self._end_round()
                 # Only initiate new round if we're not at showdown
                 if self.stage != Stage.SHOWDOWN:
@@ -1230,11 +1272,11 @@ class HoldemTable:
         # Log the state before closing
         msg = (
             f"Closing round. Community pot: {self.community_pot}, "
-            f"Current round pot: {self.current_round_pot}, "
-            f"Min call: {self.min_call}"
+            f"Current round pot: {self.current_round_pot}\n"
+            f"Min call: {self.min_call}\n"
         )
         log.info(msg)
-        # self.state_history_encoder.record(msg)
+        self.state_history_encoder.record(msg)
 
         for i, pot in enumerate(self.player_pots):
             if pot > 0:
@@ -1315,7 +1357,7 @@ class HoldemTable:
             return np.array(encoded_cards)
 
     def _distribute_cards(self):
-        log.info(f"Dealer is at position {self.dealer_pos}")
+        log.info(f"\nDealer is at position {self.dealer_pos}")
         for player in self.players:
             player.cards = []
             if player.stack <= 0:
@@ -1329,7 +1371,7 @@ class HoldemTable:
         for _ in range(amount_of_cards):
             card = np.random.randint(0, len(self.deck))
             self.table_cards.append(self.deck.pop(card))
-        msg = f"Cards on table: {self.table_cards}"
+        msg = f"\nCards on table: {self.table_cards}\n"
         # self.state_history_encoder.record(msg)
         log.info(msg)
 
