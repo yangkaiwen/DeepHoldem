@@ -1,5 +1,3 @@
-"""Registration to the gym"""
-from gym.envs.registration import register
+"""Registration to the gymnasium"""
 
-register(id='neuron_poker-v0',
-         entry_point='gym_env.env:HoldemTable')
+# Registration removed as we are instantiating the environment directly.
