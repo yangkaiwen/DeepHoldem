@@ -2,6 +2,8 @@ import numpy as np
 import logging
 import torch
 import sys
+import csv
+from datetime import datetime
 from gym_env.env import HoldemTable
 from agents.ac_agent import PokerACAgent
 from agents.random_agent import RandomAgent
@@ -45,6 +47,9 @@ class GameEvaluator:
             self.ac_agent = None
 
     def run(self):
+        import concurrent.futures
+        from parallel_worker import run_evaluation_episode
+
         # Determine main agent key
         if self.model_path == "keypress":
             main_agent_key = "keypress_agent"
@@ -54,7 +59,6 @@ class GameEvaluator:
             main_agent_key = "ac_agent"
 
         # Initialize history for metrics
-        # We track lists to calculate Mean ROI and BB/100, which are robust to stack size variance
         agent_history = {
             key: {
                 "rois": [],
@@ -70,153 +74,113 @@ class GameEvaluator:
             ]
         }
 
-        results = []  # List of [ROI_Main, ROI_Random, ROI_Mini, ROI_Large] per episode
+        # Prepare weights if using AC agent
+        actor_state = None
+        critic_state = None
+        if self.ac_agent:
+            actor_state = {k: v.cpu() for k, v in self.ac_agent.actor.state_dict().items()}
+            critic_state = {k: v.cpu() for k, v in self.ac_agent.critic.state_dict().items()}
 
-        for episode in range(self.num_episodes):
-            # Determine num_players
-            n_players = (
-                self.num_players if self.num_players else np.random.randint(2, 10)
+        # Parallel Execution Setup
+        num_workers = 20
+        executor = concurrent.futures.ProcessPoolExecutor(max_workers=num_workers)
+        futures = []
+
+        self.log.info(f"Starting evaluation with {num_workers} parallel workers...")
+
+        # Submit all tasks
+        for _ in range(self.num_episodes):
+            futures.append(
+                executor.submit(
+                    run_evaluation_episode,
+                    actor_state,
+                    critic_state,
+                    self.model_path,
+                    self.num_players,
+                    self.initial_stack,
+                    self.opponent_probabilities
+                )
             )
 
-            # Determine initial stack
-            stacks = []
-            if self.initial_stack:
-                stacks = [int(self.initial_stack)] * n_players
-            else:
-                # Random between 400 and 4000
-                stacks = np.random.randint(400, 4001, size=n_players).tolist()
+        completed_episodes = 0
+        
+        try:
+            for future in concurrent.futures.as_completed(futures):
+                completed_episodes += 1
+                try:
+                    results = future.result()
+                    
+                    # Process results
+                    for res in results:
+                        a_type = res["agent_type"]
+                        initial = res["initial"]
+                        final = res["final"]
+                        investment = res["investment"]
+                        profit = final - initial
 
-            # Create Env
-            env = HoldemTable(initial_stacks=stacks[0])
+                        # 1. ROI for this specific hand
+                        roi = (profit / investment) if investment > 0 else 0.0
+                        agent_history[a_type]["rois"].append(roi)
 
-            # Add Agents
-            # Seat 0: AC Agent or Keypress
-            agent_types = []  # Track type for ROI mapping
+                        # 2. Profit in Big Blinds
+                        # Assuming BB is 2 for now as it's standard in this env, 
+                        # or we could pass it back from worker if needed.
+                        bb = 2 
+                        profit_bb = profit / bb
+                        agent_history[a_type]["profits_bb"].append(profit_bb)
 
-            if self.model_path == "keypress":
-                env.add_player(KeypressAgent(name="Keypress"))
-                agent_types.append(main_agent_key)
-            elif self.model_path == "random":
-                env.add_player(RandomAgent(name="Random_Main"))
-                agent_types.append(main_agent_key)
-            else:
-                env.add_player(self.ac_agent)
-                agent_types.append(main_agent_key)
+                        # 3. Accumulate totals
+                        agent_history[a_type]["total_profit"] += profit
+                        agent_history[a_type]["total_invest"] += investment
 
-            # Add Opponents
-            # Probabilities: [Random, Mini, Large]
-            for i in range(1, n_players):
-                rand = np.random.random()
-                p_random, p_mini, p_large = self.opponent_probabilities
+                    # Calculate current Mean ROI for display
+                    current_mean_rois = []
+                    current_bb_100s = []
+                    current_cum_nrois = []
 
-                # Normalize probabilities to sum to 1 if they don't
-                total_p = sum(self.opponent_probabilities)
-                if total_p > 0:
-                    p_random /= total_p
-                    p_mini /= total_p
-                    p_large /= total_p
+                    for key in [
+                        main_agent_key,
+                        "random_agent",
+                        "llm_agent_mini",
+                        "llm_agent_large",
+                    ]:
+                        rois = agent_history[key]["rois"]
+                        profits_bb = agent_history[key]["profits_bb"]
+                        total_profit = agent_history[key]["total_profit"]
+                        total_invest = agent_history[key]["total_invest"]
 
-                if rand < p_random:
-                    env.add_player(RandomAgent(name=f"Random_{i}"))
-                    agent_types.append("random_agent")
-                elif rand < p_random + p_mini:
-                    # Mini
-                    env.add_player(
-                        # LLMAgent(name=f"Mini_{i}", model="openai/gpt-4.1-mini")
-                        LLMAgent(name=f"Mini_{i}", model="xiaomi/mimo-v2-flash:free")
-                    )
-                    agent_types.append("llm_agent_mini")
-                else:
-                    # Large
-                    env.add_player(
-                        # LLMAgent(name=f"Large_{i}", model="openai/gpt-4.1-mini")
-                        LLMAgent(
-                            name=f"Large_{i}",
-                            model="meta-llama/llama-3.3-70b-instruct:free",
+                        mean_roi = np.mean(rois) if rois else 0.0
+                        bb_100 = (np.mean(profits_bb) * 100) if profits_bb else 0.0
+                        cum_nroi = (total_profit / total_invest) if total_invest > 0 else 0.0
+
+                        current_mean_rois.append(round(mean_roi, 4))
+                        current_bb_100s.append(round(bb_100, 2))
+                        current_cum_nrois.append(round(cum_nroi, 4))
+
+                    # Log progress
+                    if completed_episodes % 10 == 0 or completed_episodes == self.num_episodes:
+                        print(
+                            f"Episode {completed_episodes}/{self.num_episodes} | "
+                            f"Mean ROI: {current_mean_rois} | "
+                            f"BB/100: {current_bb_100s} | "
+                            f"Cum NROI: {current_cum_nrois}",
+                            end="\r",
                         )
-                    )
-                    agent_types.append("llm_agent_large")
 
-            # Run Episode
-            # dealer_pos random
-            dealer_pos = np.random.randint(0, n_players)
-            env.reset(options={"stacks": stacks, "dealer_pos": dealer_pos})
-            env.run()
+                except Exception as e:
+                    self.log.error(f"Evaluation worker failed: {e}")
+                    import traceback
+                    traceback.print_exc()
 
-            # Calculate stats and update history
-            for i, player in enumerate(env.players):
-                initial = env.hand_starting_stacks[i]
-                final = player.stack
-                investment = env.player_max_win[i]
-                profit = final - initial
+        except KeyboardInterrupt:
+            self.log.info("Evaluation interrupted. Shutting down workers...")
+            executor.shutdown(wait=False)
+            raise
 
-                a_type = agent_types[i]
+        executor.shutdown(wait=True)
+        print() # Newline after progress bar
 
-                # 1. ROI for this specific hand
-                roi = (profit / investment) if investment > 0 else 0.0
-                agent_history[a_type]["rois"].append(roi)
 
-                # 2. Profit in Big Blinds
-                # env.big_blind is usually 2, but we access it dynamically
-                bb = env.big_blind
-                profit_bb = profit / bb
-                agent_history[a_type]["profits_bb"].append(profit_bb)
-
-                # 3. Accumulate totals
-                agent_history[a_type]["total_profit"] += profit
-                agent_history[a_type]["total_invest"] += investment
-
-                # Debug print for main agent
-                if a_type == main_agent_key:
-                    won = "YES" if profit > 0 else "NO"
-                    pct_stack = (profit / initial) * 100
-                    other_players = n_players - 1
-                    # print(
-                    #     f"Episode {episode+1}: Won={won}, Stack%={pct_stack:.2f}%, Opponents={other_players}, Invest={investment}, Profit={profit}, ROI={roi:.4f}"
-                    # )
-
-            # Calculate current Mean ROI for display
-            current_mean_rois = []
-            current_bb_100s = []
-            current_cum_nrois = []
-
-            for key in [
-                main_agent_key,
-                "random_agent",
-                "llm_agent_mini",
-                "llm_agent_large",
-            ]:
-                rois = agent_history[key]["rois"]
-                profits_bb = agent_history[key]["profits_bb"]
-                total_profit = agent_history[key]["total_profit"]
-                total_invest = agent_history[key]["total_invest"]
-
-                mean_roi = np.mean(rois) if rois else 0.0
-                bb_100 = (np.mean(profits_bb) * 100) if profits_bb else 0.0
-                cum_nroi = (total_profit / total_invest) if total_invest > 0 else 0.0
-
-                current_mean_rois.append(round(mean_roi, 4))
-                current_bb_100s.append(round(bb_100, 2))
-                current_cum_nrois.append(round(cum_nroi, 4))
-
-            results.append(current_mean_rois)
-
-            # Progress Bar
-            progress = (episode + 1) / self.num_episodes
-            bar_length = 30
-            filled_length = int(bar_length * progress)
-            bar = "█" * filled_length + "-" * (bar_length - filled_length)
-
-            main_roi = current_mean_rois[0]
-
-            sys.stdout.write(
-                f"\r[{bar}] {progress*100:.1f}% | Ep: {episode+1}/{self.num_episodes} | Main ROI: {main_roi:.4f}"
-            )
-            sys.stdout.flush()
-
-            # print(
-            #     f"Episode {episode+1}/{self.num_episodes} Mean NROI: {current_mean_rois} | BB/100: {current_bb_100s} | Cum NROI: {current_cum_nrois}"
-            # )
 
         # Final Metrics Calculation
         final_metrics = {}

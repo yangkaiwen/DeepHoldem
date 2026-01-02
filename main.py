@@ -31,6 +31,7 @@ options:
 
 """
 
+import sys
 import os
 from dotenv import load_dotenv
 
@@ -135,6 +136,8 @@ class GameRunner:
         """
         from agents.ac_agent import PokerACAgent
         from agents.random_agent import RandomAgent
+        import concurrent.futures
+        from parallel_worker import run_episode_task
 
         if use_llm:
             from agents.llm_agent import LLMAgent
@@ -145,12 +148,6 @@ class GameRunner:
                 "mistralai/devstral-2512:free",
             ]
 
-            # Create a pool of LLM agents
-            # llm_agent_pool = [
-            #     LLMAgent(name=f"LLM_{i}", model=models[(i - 1) % len(models)])
-            #     for i in range(1, 10)
-            # ]
-
         # Create ONE central agent instance
         # Initializing agent
         central_agent = PokerACAgent(name="CentralAC", device="auto")
@@ -160,102 +157,128 @@ class GameRunner:
 
         central_agent.train_mode()
 
-        # Initialize performance log
-        # with open("training_performance.csv", "w") as f:
-        #     f.write("episode,roi\n")
+        # Parallel Execution Setup
+        num_workers = 20  # Leave some CPUs for the main process and OS
+        executor = concurrent.futures.ProcessPoolExecutor(max_workers=num_workers)
+        futures = []
 
-        for episode in range(self.num_episodes):
-            # Randomize number of players (2-10)
-            num_players = np.random.randint(2, 11)
+        self.log.info(f"Starting training with {num_workers} parallel workers...")
 
-            # Create environment
-            self.env = HoldemTable(initial_stacks=self.stack)
-
-            # Add players
-            self.env.add_player(central_agent)
-            ac_player_count = 1
-
-            if use_llm:
-                # Create agents dynamically for each episode
-                for i in range(num_players - 1):
-                    model = random.choice(models)
-                    agent = LLMAgent(name=f"LLM_{i}", model=model)
-                    self.env.add_player(agent)
-            else:
-                ac_player_count = num_players
-                for i in range(1, num_players):
-                    self.env.add_player(central_agent)
-
-            self.log.info(
-                f"Episode {episode+1}/{self.num_episodes}: {num_players} players ({ac_player_count} AC)"
+        # Helper to submit a new task
+        def submit_task():
+            # Get current weights (move to CPU for pickling)
+            actor_state = {k: v.cpu() for k, v in central_agent.actor.state_dict().items()}
+            critic_state = {k: v.cpu() for k, v in central_agent.critic.state_dict().items()}
+            return executor.submit(
+                run_episode_task, 
+                actor_state, 
+                critic_state, 
+                self.stack, 
+                use_llm
             )
 
-            # Generate random stacks (200BB to 2000BB)
-            # Default BB is 2, so 400 to 4000
-            bb = self.env.big_blind
-            random_stacks = np.random.uniform(200 * bb, 2000 * bb, num_players)
+        # Fill the queue
+        for _ in range(num_workers):
+            futures.append(submit_task())
 
-            # Random dealer position
-            dealer_pos = np.random.randint(0, num_players)
+        completed_episodes = 0
+        
+        try:
+            while completed_episodes < self.num_episodes:
+                # Wait for the first future to complete
+                done, not_done = concurrent.futures.wait(
+                    futures, return_when=concurrent.futures.FIRST_COMPLETED
+                )
+                
+                futures = list(not_done)
+                
+                for future in done:
+                    completed_episodes += 1
+                    try:
+                        env_experiences, cpu_agent_buffer, stats = future.result()
+                        
+                        # Move buffer to central agent's device
+                        device_agent_buffer = {}
+                        for seat, exps in cpu_agent_buffer.items():
+                            device_agent_buffer[seat] = []
+                            for exp in exps:
+                                new_exp = {}
+                                for k, v in exp.items():
+                                    if isinstance(v, torch.Tensor):
+                                        new_exp[k] = v.to(central_agent.device)
+                                    elif isinstance(v, dict): # observation dict
+                                        new_exp[k] = {sk: sv.to(central_agent.device) if isinstance(sv, torch.Tensor) else sv for sk, sv in v.items()}
+                                    else:
+                                        new_exp[k] = v
+                                device_agent_buffer[seat].append(new_exp)
+                        
+                        # Inject buffer and update
+                        central_agent.episode_buffer = device_agent_buffer
+                        central_agent.update(
+                            env_experiences,
+                            current_episode=completed_episodes,
+                            total_episodes=self.num_episodes,
+                        )
+                        
+                        # Log progress
+                        if completed_episodes % 10 == 0:
+                            self.log.info(
+                                f"Episode {completed_episodes}/{self.num_episodes}: "
+                                f"{stats['num_players']} players, ROI: {stats['roi']:.2f}"
+                            )
 
-            # Run episode
-            self.env.reset(options={"stacks": random_stacks, "dealer_pos": dealer_pos})
-            self.env.run()
+                        # Save periodically
+                        if completed_episodes % 5000 == 0:
+                            model_path = f"models/ac_agent_{completed_episodes}.pt"
+                            central_agent.save(model_path)
+                            
+                            # Evaluation 1: vs Random (Every saved model)
+                            import subprocess
 
-            # Collect experiences from ALL players
-            all_experiences = self.env.get_player_experiences()
+                            cmd_random = [
+                                sys.executable,
+                                "main.py",
+                                "play",
+                                "game_evaluator",
+                                f"--model_path={model_path}",
+                                "--episodes=10000",
+                                "--opponent_probs=1,0,0",
+                                "--log_results=evaluation_vs_random.csv",
+                                "--log=eval_random",
+                            ]
+                            subprocess.run(cmd_random)
 
-            # Update central agent using aggregated experiences
-            # The update method now handles the dict of {seat_id: experiences}
-            central_agent.update(all_experiences)
+                        # Evaluation 2: vs Mini LLM (Every 50k episodes)
+                        if completed_episodes % 50000 == 0:
+                            print(f"\nRunning Evaluation vs Mini LLM for {model_path}...")
+                            cmd_mini = [
+                                sys.executable,
+                                "main.py",
+                                "play",
+                                "game_evaluator",
+                                f"--model_path={model_path}",
+                                "--episodes=100",
+                                "--opponent_probs=0,1,0",
+                                "--log_results=evaluation_vs_mini.csv",
+                                "--log=eval_mini",
+                            ]
+                            subprocess.run(cmd_mini)
 
-            # Record performance
-            # ROI = (Final Stack - Initial Stack) / Initial Stack
-            # central_agent is at index 0
-            final_stack = self.env.players[0].stack
-            initial_stack = random_stacks[0]
-            roi = (final_stack - initial_stack) / initial_stack
+                    except Exception as e:
+                        self.log.error(f"Worker failed: {e}")
+                        import traceback
+                        traceback.print_exc()
 
-            # with open("training_performance.csv", "a") as f:
-            #     f.write(f"{episode+1},{roi}\n")
+                    # Submit a new task to replace the completed one
+                    if completed_episodes + len(futures) < self.num_episodes:
+                        futures.append(submit_task())
+                        
+        except KeyboardInterrupt:
+            self.log.info("Training interrupted. Shutting down workers...")
+            executor.shutdown(wait=False)
+            raise
 
-            # Save periodically
-            if (episode + 1) % 5000 == 0 or (episode + 1) == 1:
-                model_path = f"models/ac_agent_{episode+1}.pt"
-                central_agent.save(model_path)
-
-                # Evaluation 1: vs Random (Every saved model)
-                # print(f"\nRunning Evaluation vs Random for {model_path}...")
-                import subprocess
-
-                cmd_random = [
-                    "python",
-                    "main.py",
-                    "play",
-                    "game_evaluator",
-                    f"--model_path={model_path}",
-                    "--episodes=10000",
-                    "--opponent_probs=1,0,0",
-                    "--log_results=evaluation_vs_random.csv",
-                    "--log=eval_random",
-                ]
-                subprocess.run(cmd_random)
-
-            # Evaluation 2: vs Mini LLM (Every 10th saved model, i.e., every 10k episodes)
-            if (episode + 1) % 50000 == 0:
-                print(f"\nRunning Evaluation vs Mini LLM for {model_path}...")
-                cmd_mini = [
-                    "python",
-                    "main.py",
-                    "play",
-                    "game_evaluator",
-                    f"--model_path={model_path}",
-                    "--episodes=100",
-                    "--opponent_probs=0,1,0",
-                    "--log_results=evaluation_vs_mini.csv",
-                    "--log=eval_mini",
-                ]
-                subprocess.run(cmd_mini)
+        executor.shutdown(wait=True)
 
     def key_press_agents(self):
         """Create an environment with key press agents"""

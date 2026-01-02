@@ -40,7 +40,7 @@ class PokerACAgent:
         self.episode_buffer = defaultdict(list)
         # Buffer for accumulating experiences across episodes for batch update
         self.training_buffer = defaultdict(list)
-        self.min_batch_size = 2000  # Minimum steps before performing an update
+        self.min_batch_size = 10000  # Minimum steps before performing an update
 
         # Hyperparameters
         self.gamma = 1
@@ -261,7 +261,12 @@ class PokerACAgent:
 
         return obs_dict
 
-    def update(self, all_experiences: Dict[int, List[Dict]]):
+    def update(
+        self,
+        all_experiences: Dict[int, List[Dict]],
+        current_episode: int = 0,
+        total_episodes: int = 0,
+    ):
         """
         Update policy using experiences from all players in the episode.
         Accumulates experiences and only runs optimization when batch size is reached.
@@ -269,6 +274,8 @@ class PokerACAgent:
         Args:
             all_experiences: Dict mapping seat_id to list of experience dicts
                              (from env.get_player_experiences())
+            current_episode: Current episode number (for logging)
+            total_episodes: Total episodes to run (for logging)
         """
         if not all_experiences or not self.episode_buffer:
             return
@@ -431,9 +438,15 @@ class PokerACAgent:
 
             self.training_step += 1
 
-        print(
-            f"  [UPDATE] Network updated at step {self.training_step} (Batch size: {current_batch_size})"
-        )
+        if total_episodes > 0:
+            pct = (current_episode / total_episodes) * 100
+            print(
+                f"  [UPDATE] Network updated at step {self.training_step} (Batch size: {current_batch_size}) | Episode: {current_episode}/{total_episodes} ({pct:.1f}%)"
+            )
+        else:
+            print(
+                f"  [UPDATE] Network updated at step {self.training_step} (Batch size: {current_batch_size})"
+            )
         print(
             f"    Losses -> Policy: {p_loss.item():.4f} | Value: {v_loss.item():.4f} | Entropy: {e_loss.item():.4f}"
         )

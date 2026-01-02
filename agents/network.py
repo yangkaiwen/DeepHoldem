@@ -13,8 +13,8 @@ class PokerFeatureExtractor(nn.Module):
         self,
         max_players=10,
         max_action_seq=100,
-        use_player_features=False,
-        use_action_features=False,
+        use_player_features=True,
+        use_action_features=True,
     ):
         super().__init__()
 
@@ -25,17 +25,17 @@ class PokerFeatureExtractor(nn.Module):
         self.use_action_features = use_action_features
 
         # Card encoding: 0-51 cards, -1 for padding (using 53 tokens, 52 for padding)
-        self.card_embedding = nn.Embedding(53, 32, padding_idx=52)
+        self.card_embedding = nn.Embedding(53, 64, padding_idx=52)
 
         if self.use_player_features:
             # Player feature encoder (6 features per player: is_active, did_raise, money_invested, current_stack, is_current, is_bb)
             self.player_encoder = nn.Sequential(
-                nn.Linear(6, 64), nn.ReLU(), nn.Linear(64, 64)
+                nn.Linear(6, 128), nn.ReLU(), nn.Linear(128, 128)
             )
 
             # Self-attention for variable number of players
             self.player_attention = nn.MultiheadAttention(
-                embed_dim=64, num_heads=4, batch_first=True, dropout=0.1
+                embed_dim=128, num_heads=8, batch_first=True, dropout=0.1
             )
         else:
             self.player_encoder = None
@@ -45,42 +45,42 @@ class PokerFeatureExtractor(nn.Module):
             # Action sequence LSTM (4 features per action: player_seat, action_idx, reward, done)
             self.action_lstm = nn.LSTM(
                 input_size=4,
-                hidden_size=128,
-                num_layers=1,
+                hidden_size=256,
+                num_layers=2,
                 batch_first=True,
-                dropout=0,
+                dropout=0.1,
             )
         else:
             self.action_lstm = None
 
         # Global features encoder (7 features)
         self.global_encoder = nn.Sequential(
-            nn.Linear(7, 64), nn.ReLU(), nn.Linear(64, 64)
+            nn.Linear(7, 128), nn.ReLU(), nn.Linear(128, 128)
         )
 
         # Card features encoder (2 hole + 5 community = 7 cards)
         self.card_features_encoder = nn.Sequential(
-            nn.Linear(7 * 32, 64), nn.ReLU(), nn.Linear(64, 64)
+            nn.Linear(7 * 64, 128), nn.ReLU(), nn.Linear(128, 128)
         )
 
         # Fusion network - combine all encoded features
         fusion_input_size = (
-            64
-            + (64 if self.use_player_features else 0)
-            + (128 if self.use_action_features else 0)
-            + 64
+            128
+            + (128 if self.use_player_features else 0)
+            + (256 if self.use_action_features else 0)
+            + 128
         )
         self.fusion = nn.Sequential(
-            nn.Linear(fusion_input_size, 256),  # cards + players + actions + global
+            nn.Linear(fusion_input_size, 512),  # cards + players + actions + global
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(256, 128),
+            nn.Linear(512, 256),
             nn.ReLU(),
             nn.Dropout(0.2),
         )
 
         # Layer norm for stability
-        self.layer_norm = nn.LayerNorm(128)
+        self.layer_norm = nn.LayerNorm(256)
 
     def forward(self, observation_dict: dict) -> torch.Tensor:
         """
@@ -147,7 +147,7 @@ class PokerFeatureExtractor(nn.Module):
             seq_lengths = action_mask.sum(dim=1).cpu()
 
             # Initialize action_features with zeros
-            action_features = torch.zeros(batch_size, 128).to(card_features.device)
+            action_features = torch.zeros(batch_size, 256).to(card_features.device)
 
             # Only process sequences with length > 0
             valid_indices = torch.nonzero(seq_lengths > 0).reshape(-1)
@@ -191,16 +191,16 @@ class PokerFeatureExtractor(nn.Module):
 
         # 5. Combine all features
         features_list = [
-            card_features,  # 32
+            card_features,  # 128
         ]
         if self.use_player_features:
-            features_list.append(player_features_out)  # 32
+            features_list.append(player_features_out)  # 128
         if self.use_action_features:
-            features_list.append(action_features)  # 64
+            features_list.append(action_features)  # 256
 
-        features_list.append(global_features)  # 32
+        features_list.append(global_features)  # 128
 
-        combined = torch.cat(features_list, dim=1)  # Total: 160 or 128 or 96 or 64
+        combined = torch.cat(features_list, dim=1)
 
         # 6. Fusion and output
         fused = self.fusion(combined)
@@ -214,7 +214,7 @@ class ActorNetwork(nn.Module):
         super().__init__()
         self.feature_extractor = PokerFeatureExtractor(max_players, max_action_seq)
         # Actor head (policy) - 13 actions (FOLD through ALL_IN, excludes SMALL_BLIND/BIG_BLIND)
-        self.actor = nn.Sequential(nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 13))
+        self.actor = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Linear(128, 13))
 
     def forward(self, observation_dict):
         features = self.feature_extractor(observation_dict)
@@ -227,11 +227,11 @@ class CriticNetwork(nn.Module):
         self.feature_extractor = PokerFeatureExtractor(max_players, max_action_seq)
         # Critic head (value)
         self.critic = nn.Sequential(
+            nn.Linear(256, 128),
+            nn.ReLU(),
             nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 1),
+            nn.Linear(64, 1),
         )
 
     def forward(self, observation_dict):
