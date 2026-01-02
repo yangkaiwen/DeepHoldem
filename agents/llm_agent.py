@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import urllib.request
 import urllib.error
 import re
@@ -12,13 +13,20 @@ class LLMAgent:
     The observation passed to action() is treated as the prompt.
     """
 
-    def __init__(self, name="LLMAgent", model="deepseek/deepseek-r1"):
+    def __init__(self, name="LLMAgent", model="openai/gpt-4.1-mini"):
         self.name = name
         self.model = model
-        self.api_key = os.environ.get("OPENROUTER_API_KEY")
-        if not self.api_key:
+        self.openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
+        self.openai_api_key = os.environ.get("OPENAI_API_KEY")
+        self.deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
+
+        if (
+            not self.openrouter_api_key
+            and not self.openai_api_key
+            and not self.deepseek_api_key
+        ):
             print(
-                f"Warning: OPENROUTER_API_KEY environment variable not set for {self.name}."
+                f"Warning: No API keys (OPENROUTER, OPENAI, DEEPSEEK) found for {self.name}."
             )
 
     def action(self, action_space, observation, info):
@@ -32,7 +40,14 @@ class LLMAgent:
         # Get legal action values (integers)
         legal_actions = [a.value for a in action_space] if action_space else []
 
-        if not self.api_key:
+        # Check if we have a valid key for the requested model
+        use_openai_direct = self.model.startswith("openai/") and self.openai_api_key
+        use_deepseek_direct = (
+            self.model.startswith("deepseek/") and self.deepseek_api_key
+        )
+        has_key = use_openai_direct or use_deepseek_direct or self.openrouter_api_key
+
+        if not has_key:
             # Fallback if no key
             return (
                 0,
@@ -44,7 +59,13 @@ class LLMAgent:
             )
 
         try:
-            response_text = self._call_llm(prompt)
+            try:
+                response_text = self._call_llm(prompt)
+            except Exception as e:
+                print(
+                    f"  [LLM Error] Primary model {self.model} failed: {e}. Fallback to deepseek/deepseek-chat"
+                )
+                response_text = self._call_llm(prompt, model="deepseek/deepseek-chat")
 
             # Simple parsing: look for the first number
             match = re.search(r"\d+", response_text)
@@ -63,32 +84,96 @@ class LLMAgent:
 
         except Exception as e:
             print(f"LLM Error: {e}")
-            # Fallback on error
+
+            # Smart Fallback: Try to CHECK (1) if legal, otherwise FOLD (0)
+            fallback_action = 0  # Default FOLD
+            fallback_name = "FOLD"
+
+            if 1 in legal_actions:
+                fallback_action = 1  # CHECK
+                fallback_name = "CHECK"
+
+            print(f"  -> Fallback: {fallback_name} ({fallback_action})")
+
             return (
-                0,
+                fallback_action,
                 {
                     "agent_type": "llm",
                     "error": str(e),
-                    "legal": 1 if 0 in legal_actions else 0,
+                    "legal": 1,  # Fallback is always chosen from legal
                 },
             )
 
-    def _call_llm(self, prompt):
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/PyPokerEngine/DeepHoldem",  # Optional, good practice for OpenRouter
-            "X-Title": "DeepHoldem Agent",  # Optional
+    def _call_llm(self, prompt, model=None):
+        target_model = model if model else self.model
+
+        # Determine if we should use OpenAI direct
+        use_openai_direct = target_model.startswith("openai/") and self.openai_api_key
+        use_deepseek_direct = (
+            target_model.startswith("deepseek/") and self.deepseek_api_key
+        )
+
+        if use_openai_direct:
+            url = "https://api.openai.com/v1/chat/completions"
+            api_key = self.openai_api_key
+            # Strip 'openai/' prefix for direct API usage
+            model_id = target_model.replace("openai/", "")
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+        elif use_deepseek_direct:
+            url = "https://api.deepseek.com/chat/completions"
+            api_key = self.deepseek_api_key
+            # Strip 'deepseek/' prefix for direct API usage
+            model_id = target_model.replace("deepseek/", "")
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+        else:
+            url = "https://openrouter.ai/api/v1/chat/completions"
+            api_key = self.openrouter_api_key
+            model_id = target_model
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "X-Title": "DeepHoldem Agent",  # Optional
+            }
+
+        data = {
+            "model": model_id,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a poker playing agent. You must respond with ONLY the index of the action you want to take. Do not provide any reasoning or explanation.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0,
+            "max_tokens": 3,
         }
-        data = {"model": self.model, "messages": [{"role": "user", "content": prompt}]}
 
         req = urllib.request.Request(
             url, data=json.dumps(data).encode("utf-8"), headers=headers
         )
-        with urllib.request.urlopen(req) as response:
-            result = json.loads(response.read().decode("utf-8"))
-            if "choices" in result and len(result["choices"]) > 0:
-                return result["choices"][0]["message"]["content"]
-            else:
-                raise ValueError("Invalid response from OpenRouter: " + str(result))
+
+        start_time = time.time()
+        # Set a timeout for the request (e.g., 30 seconds)
+        try:
+            with urllib.request.urlopen(req, timeout=30) as response:
+                result = json.loads(response.read().decode("utf-8"))
+
+                elapsed = time.time() - start_time
+                if elapsed > 2.0:
+                    print(
+                        f"  [Slow LLM Response] Model: {self.model}, Time: {elapsed:.2f}s"
+                    )
+
+                if "choices" in result and len(result["choices"]) > 0:
+                    return result["choices"][0]["message"]["content"]
+                else:
+                    raise ValueError("Invalid response from OpenRouter: " + str(result))
+        except urllib.error.URLError as e:
+            print(f"  [LLM Network Error] {e} (Time: {time.time() - start_time:.2f}s)")
+            raise e

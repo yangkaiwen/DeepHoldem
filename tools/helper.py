@@ -129,9 +129,9 @@ def init_logger(screenlevel, filename=None, logdir=None, modulename=""):
         error_filename = os.path.join(logdir, filename + "_errors.log")
         info_filename = os.path.join(logdir, filename + "_info.log")
 
-        print("Saving log file to: {}".format(all_logs_filename))
-        print("Saving info file to: {}".format(info_filename))
-        print("Saving error only file to: {}".format(error_filename))
+        # print("Saving log file to: {}".format(all_logs_filename))
+        # print("Saving info file to: {}".format(info_filename))
+        # print("Saving error only file to: {}".format(error_filename))
 
         file_handler2 = handlers.RotatingFileHandler(
             all_logs_filename, maxBytes=300000, backupCount=20

@@ -271,7 +271,7 @@ class HoldemTable:
                 [
                     self.players[self.acting_agent].seat,
                     action.value if isinstance(action, Action) else action,
-                    self.reward / (self.big_blind * 100),
+                    self.reward,
                     1 if self.done else 0,
                 ]
             )
@@ -301,7 +301,7 @@ class HoldemTable:
             "\nIt is your turn to make a decision."
             + "Here are the legal moves:\n"
             + "\n".join([f"{a.value}: {a.name}" for a in self.legal_moves])
-            + "\nChoose the index of your available legal action and respond with ONLY the index."
+            + "\nChoose the index of your available legal action and respond with ONLY the index. (Example response: 2)"
         )
         return msg_starter + msg_info + msg_explain + history + msg
 
@@ -321,17 +321,13 @@ class HoldemTable:
                 + "\n"
             )
             self._get_environment()
-
+            # print(self.process_state_recorder())
             if self.current_player.agent_obj.__class__.__name__ == "LLMAgent":
                 llm_prompt = self.process_state_recorder()
                 action, action_info = self.current_player.agent_obj.action(
                     self.legal_moves, llm_prompt, self.info
                 )
             else:
-                llm_prompt = self.process_state_recorder()
-                print("" + "=" * 80)
-                print(llm_prompt)
-                print("=" * 80 + "\n")
                 action, action_info = self.current_player.agent_obj.action(
                     self.legal_moves, self.observation, self.info
                 )
@@ -362,7 +358,7 @@ class HoldemTable:
                 self._end_hand()
                 self.done = True
                 self._calculate_terminal_rewards()
-                self._print_hand_results()
+                # self._print_hand_results()
                 self._store_terminal_observation()
 
     def _execute_step(self, action):
@@ -439,11 +435,19 @@ class HoldemTable:
                 community_cards[i] = card
         obs_components.extend(community_cards)
 
+        # Determine normalization factor (current player's initial stack)
+        norm_factor = self.big_blind * 100  # Default fallback
+        if self.current_player:
+            # Assuming seat corresponds to index in players list/hand_starting_stacks
+            idx = self.current_player.seat
+            if idx < len(self.hand_starting_stacks):
+                stack = self.hand_starting_stacks[idx]
+                if stack > 0:
+                    norm_factor = stack
+
         # Game state features
         obs_components.append(len(self.players))  # Number of players
-        obs_components.append(
-            self.community_pot / (self.big_blind * 100)
-        )  # Current community pot
+        obs_components.append(self.community_pot / norm_factor)  # Current community pot
         obs_components.append(self.stage.value)  # Current stage as integer
         obs_components.append(sum(self.player_cycle.alive))  # Number of active players
         obs_components.append(len(self.callers))  # Number of players called
@@ -462,12 +466,12 @@ class HoldemTable:
                 did_raise = 1 if player.seat in self.raisers else 0
 
                 # 3. Amount of money invested in this hand (initial - current)
-                money_invested = (self.hand_starting_stacks[i] - player.stack) / (
-                    self.big_blind * 100
-                )
+                money_invested = (
+                    self.hand_starting_stacks[i] - player.stack
+                ) / norm_factor
 
                 # 4. Current player stack not invested
-                current_stack = player.stack / (self.big_blind * 100)
+                current_stack = player.stack / norm_factor
 
                 # 4. Is this the current player (1 if current, 0 otherwise)
                 is_current = (
@@ -537,12 +541,17 @@ class HoldemTable:
         previous_stack = self.previous_stacks[i]
         incremental_change = current_stack - previous_stack
 
-        self.reward = incremental_change
+        # Calculate reward as percentage of initial stack
+        initial_stack = self.hand_starting_stacks[i]
+        if initial_stack > 0:
+            self.reward = incremental_change / initial_stack
+        else:
+            self.reward = 0
 
         # Update previous stack for next step
         self.previous_stacks[i] = current_stack
 
-        msg = f"Agent (seat {i}) incremental reward: current_stack={current_stack:.2f} previous_stack={previous_stack:.2f} reward={self.reward:.2f}\n"
+        msg = f"Agent (seat {i}) incremental reward: current_stack={current_stack:.2f} previous_stack={previous_stack:.2f} reward (%)={self.reward:.2f}\n"
         log.info(msg)
         self.state_history_encoder.record(msg)
 
@@ -559,7 +568,14 @@ class HoldemTable:
         for i, player in enumerate(self.players):
             current_stack = player.stack
             previous_stack = self.previous_stacks[i]
-            terminal_reward = current_stack - previous_stack
+            terminal_reward_amount = current_stack - previous_stack
+
+            # Calculate reward as percentage of initial stack
+            initial_stack = self.hand_starting_stacks[i]
+            if initial_stack > 0:
+                terminal_reward = terminal_reward_amount / initial_stack
+            else:
+                terminal_reward = 0
 
             # Store terminal reward for each player
             self.terminal_rewards[i] = terminal_reward
@@ -568,9 +584,61 @@ class HoldemTable:
             self.previous_stacks[i] = current_stack
 
             log.info(
-                f"Player (seat {i}) terminal reward: {terminal_reward} "
+                f"Player (seat {i}) terminal reward: {terminal_reward * 100:.2f}% "
                 f"(stack: {previous_stack:.2f} -> {current_stack:.2f})"
             )
+
+        # Counterfactual regrets for preflop folders
+        # 1. Identify the player with highest stack increase
+        max_increase = -float("inf")
+        winner_idx = -1
+
+        for i, player in enumerate(self.players):
+            profit = player.stack - self.hand_starting_stacks[i]
+            if profit > max_increase:
+                max_increase = profit
+                winner_idx = i
+
+        # 2. Identify players folded during preflop
+        preflop_folders = []
+        for i, player in enumerate(self.players):
+            if player.fold_stage == Stage.PREFLOP:
+                preflop_folders.append(i)
+
+        if preflop_folders and winner_idx != -1:
+            # 3. Deal cards until the end round (river)
+            simulated_table_cards = list(self.table_cards)
+            cards_needed = 5 - len(simulated_table_cards)
+
+            # Ensure we have enough cards
+            if cards_needed > 0 and len(self.deck) >= cards_needed:
+                for _ in range(cards_needed):
+                    card_idx = np.random.randint(0, len(self.deck))
+                    simulated_table_cards.append(self.deck.pop(card_idx))
+
+            if len(simulated_table_cards) == 5:
+                # 4. Compete against the winner
+                winner_hand = self.players[winner_idx].cards
+
+                for folder_idx in preflop_folders:
+                    folder_hand = self.players[folder_idx].cards
+
+                    # Compare folder_hand vs winner_hand
+                    # get_winner returns the index of the winner in the input list
+                    best_hand_ix, _ = get_winner(
+                        [folder_hand, winner_hand], simulated_table_cards
+                    )
+
+                    if best_hand_ix == 0:  # Folder won
+                        # Apply penalty of -x (max_increase)
+                        initial_stack = self.hand_starting_stacks[folder_idx]
+                        if initial_stack > 0:
+                            penalty_percentage = max_increase / initial_stack
+                            self.terminal_rewards[folder_idx] -= penalty_percentage
+
+                            log.info(
+                                f"Counterfactual regret applied to Player {folder_idx}: -{penalty_percentage} (would have won against Player {winner_idx})"
+                            )
 
     def _process_decision(self, action):  # pylint: disable=too-many-statements
         """Process the decisions that have been made by an agent."""
@@ -580,6 +648,7 @@ class HoldemTable:
         if action == Action.FOLD:
             self.player_cycle.deactivate_current()
             self.player_cycle.mark_folder()
+            self.current_player.fold_stage = self.stage
 
         else:
             # Calculate current amount to call BEFORE this action
@@ -805,6 +874,7 @@ class HoldemTable:
         self.table_cards = []
         self._create_card_deck()
         self.stage = Stage.PREFLOP
+        self.PARD = []
 
         # preflop round1,2, flop>: round 1,2, turn etc...
         self.stage_data = [StageData(len(self.players)) for _ in range(8)]
@@ -820,6 +890,7 @@ class HoldemTable:
 
         for player in self.players:
             player.cards = []
+            player.fold_stage = None
             player.num_raises_in_street = {
                 Stage.PREFLOP: 0,
                 Stage.FLOP: 0,
@@ -863,6 +934,7 @@ class HoldemTable:
             self.player_cycle.idx += 1
 
         if self.stage == Stage.PREFLOP:
+            self.player_cycle.preflop_no_raise = True
             log.info("")
             log.info("===Round: Stage: PREFLOP===")
             self.state_history_encoder.record("GAME STARTS!\n")
@@ -945,7 +1017,22 @@ class HoldemTable:
         """End of preflop, flop, turn or river"""
         # First check if betting round is actually complete
         if not self._is_betting_round_complete():
-            log.warning("Attempting to end round when betting is not complete!")
+            log.warning(
+                "Attempting to end round when betting is not complete! (Recovering)"
+            )
+            log.warning(f"Ledger dump:\n{self.state_history_encoder.ledger}")
+
+            # Save ledger to file
+            try:
+                import time
+
+                timestamp = int(time.time())
+                with open(f"ledger_dump_{timestamp}.txt", "w") as f:
+                    f.write(self.state_history_encoder.ledger)
+                log.warning(f"Ledger saved to ledger_dump_{timestamp}.txt")
+            except Exception as e:
+                log.error(f"Failed to save ledger dump: {e}")
+
             # Try to find next player to act
             next_idx = self._find_next_active_player(self.player_cycle.idx)
             if next_idx >= 0:
@@ -987,18 +1074,28 @@ class HoldemTable:
         self.winner_ix = self._get_winner()
         self._award_winner(self.winner_ix)
         # Handled in run(): self.done = True
+        # print(self.state_history_encoder.ledger)
 
     def _store_terminal_observation(self):
-        """Store terminal observation (same for all players)"""
-        # Get observation from environment's current state
-        self._get_environment()  # This updates self.observation
-        self.terminal_observation = self.observation
+        """Store terminal observation (customized for each player)"""
+        original_current_player = self.current_player
 
-        # Also record this as the last observation for all players who have any observations
+        # Generate terminal observation for each player from their perspective
         for player_id in range(len(self.players)):
+            # Only if player has played (has observations)
             if self.player_observations[player_id]:
+                # Temporarily set current player to generate observation from their perspective
+                self.current_player = self.players[player_id]
+                self._get_environment()
                 # Append terminal observation as the last observation for each player
-                self.player_observations[player_id].append(self.terminal_observation)
+                self.player_observations[player_id].append(self.observation)
+
+        # Restore original current player
+        self.current_player = original_current_player
+
+        # Update self.terminal_observation for external access
+        self._get_environment()
+        self.terminal_observation = self.observation
 
     def get_player_experiences(self):
         """
@@ -1176,6 +1273,7 @@ class HoldemTable:
                 for i in non_folded_indices
             )
             if all_all_in and len(non_folded_indices) >= 2:
+                # self.state_history_encoder.record("\nFOR DEBUGGING: all non-folded players are all-in\n")
                 log.info(
                     "All non-folded players are all-in. Dealing remaining community cards and going to showdown."
                 )
@@ -1187,7 +1285,6 @@ class HoldemTable:
         self.current_player = self.player_cycle.next_player()
 
         if not self.current_player:
-            # Player cycle indicates round should end based on unified rules
             if sum(self.player_cycle.alive) < 2:
                 log.info("Only one player remaining in round")
                 self.stage = Stage.END_HIDDEN
@@ -1215,6 +1312,14 @@ class HoldemTable:
         player_current_contribution = self.player_pots[self.current_player.seat]
         call_amount_needed = max(0, self.min_call - player_current_contribution)
 
+        # Calculate total invested so far to enforce 200 BB cap
+        total_invested_so_far = (
+            self.hand_starting_stacks[self.current_player.seat]
+            - self.current_player.stack
+        )
+        # max_contribution_allowed = 200 * self.big_blind
+        # remaining_allowed = max(0, max_contribution_allowed - total_invested_so_far)
+
         # Minimum raise amount is the last raise amount or big blind, whichever is larger
         min_raise_increment = max(self.last_raise_amount, self.big_blind)
         min_total_for_raise = self.min_call + min_raise_increment
@@ -1226,6 +1331,7 @@ class HoldemTable:
         if (
             self.current_player.stack >= min_raise_contribution
             and min_raise_contribution > call_amount_needed
+            # and min_raise_contribution <= remaining_allowed
         ):
             self.legal_moves.append(Action.BET_MIN_RAISE)
 
@@ -1255,6 +1361,7 @@ class HoldemTable:
                 self.current_player.stack >= contribution_needed
                 and contribution_needed > call_amount_needed
                 and (total_bet - self.min_call) >= min_raise_increment
+                # and contribution_needed <= remaining_allowed
             ):
                 self.legal_moves.append(action_type)
 
@@ -1390,6 +1497,7 @@ class PlayerShell:
         self.name = name
         self.agent_obj = None
         self.cards = None
+        self.fold_stage = None
         self.num_raises_in_street = {
             Stage.PREFLOP: 0,
             Stage.FLOP: 0,

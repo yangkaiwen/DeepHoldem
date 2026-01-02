@@ -9,6 +9,7 @@ Usage:
   main.py play ac_train [options]
   main.py play dqn_train [options]
   main.py play dqn_play [options]
+  main.py play game_evaluator [options]
   main.py learn_table_scraping [options]
 
 options:
@@ -16,16 +17,25 @@ options:
   -r --render               render screen
   -c --use_cpp_montecarlo   use cpp implementation of equity calculator. Requires cpp compiler but is 500x faster
   -f --funds_plot           Plot funds at end of episode
-  --log                     log file
+  --log=<>                  log file
   --name=<>                 Name of the saved model
   --screenloglevel=<>       log level on screen
   --episodes=<>             number of episodes to play
-  --stack=<>                starting stack for each player [default: 500].
+  --stack=<>                starting stack for each player
   --load_model=<>           Path to load model from
+  --model_path=<>           Path to model for game_evaluator (or 'keypress')
+  --num_players=<>          Number of players (2-9)
+  --opponent_probs=<>       Opponent probabilities (e.g. "0.5,0.2,0.3")
+  --log_results=<>          Path to save evaluation results (CSV)
+  --use_llm                 Use LLM agents as opponents
 
 """
 
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Fix for Windows DLL error: [WinError 1114]
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -51,7 +61,7 @@ def command_line_parser():
     if args["--log"]:
         logfile = args["--log"]
     else:
-        print("Using default log file")
+        # print("Using default log file")
         logfile = "default"
     model_name = args["--name"] if args["--name"] else "dqn1"
     screenloglevel = (
@@ -60,15 +70,16 @@ def command_line_parser():
         else getattr(logging, args["--screenloglevel"].upper())
     )
     init_logger(screenlevel=screenloglevel, filename=logfile)
-    print(f"Screenloglevel: {screenloglevel}")
+    # print(f"Screenloglevel: {screenloglevel}")
     log = logging.getLogger("")
     log.info("Initializing program")
 
     if args["play"]:
         num_episodes = 1 if not args["--episodes"] else int(args["--episodes"])
+        stack_val = int(args["--stack"]) if args["--stack"] else 500
         runner = GameRunner(
             num_episodes=num_episodes,
-            stack=int(args["--stack"]),
+            stack=stack_val,
         )
 
         if args["keypress"]:
@@ -76,7 +87,31 @@ def command_line_parser():
 
         elif args["ac_train"]:
             load_path = args["--load_model"]
-            runner.ac_train(load_path)
+            use_llm = args["--use_llm"]
+            runner.ac_train(load_path, use_llm)
+
+        elif args["game_evaluator"]:
+            from game_evaluator import GameEvaluator
+
+            model_path = args["--model_path"]
+            num_players = args["--num_players"]
+            opponent_probs_str = args["--opponent_probs"]
+            log_results = args["--log_results"]
+            opponent_probs = (
+                [float(x) for x in opponent_probs_str.split(",")]
+                if opponent_probs_str
+                else None
+            )
+
+            evaluator = GameEvaluator(
+                model_path=model_path,
+                num_episodes=num_episodes,
+                num_players=num_players,
+                initial_stack=args["--stack"],
+                opponent_probabilities=opponent_probs,
+                log_results_path=log_results,
+            )
+            evaluator.run()
 
     else:
         raise RuntimeError("Argument not yet implemented")
@@ -93,7 +128,7 @@ class GameRunner:
         self.stack = stack
         self.log = logging.getLogger(__name__)
 
-    def ac_train(self, load_path=None):
+    def ac_train(self, load_path=None, use_llm=False):
         """
         Run training with Actor-Critic agents.
         Multiple agents share the same network and learn from all experiences.
@@ -101,13 +136,33 @@ class GameRunner:
         from agents.ac_agent import PokerACAgent
         from agents.random_agent import RandomAgent
 
+        if use_llm:
+            from agents.llm_agent import LLMAgent
+            import random
+
+            models = [
+                "xiaomi/mimo-v2-flash:free",
+                "mistralai/devstral-2512:free",
+            ]
+
+            # Create a pool of LLM agents
+            # llm_agent_pool = [
+            #     LLMAgent(name=f"LLM_{i}", model=models[(i - 1) % len(models)])
+            #     for i in range(1, 10)
+            # ]
+
         # Create ONE central agent instance
+        # Initializing agent
         central_agent = PokerACAgent(name="CentralAC", device="auto")
 
         if load_path:
             central_agent.load(load_path)
 
         central_agent.train_mode()
+
+        # Initialize performance log
+        # with open("training_performance.csv", "w") as f:
+        #     f.write("episode,roi\n")
 
         for episode in range(self.num_episodes):
             # Randomize number of players (2-10)
@@ -116,21 +171,20 @@ class GameRunner:
             # Create environment
             self.env = HoldemTable(initial_stacks=self.stack)
 
-            # Add players - mix of AC agents (controlled by central_agent) and Random agents
-            # E.g., 80% AC agents, 20% Random
-            ac_player_count = 0
-            for i in range(num_players):
-                if np.random.random() < 0.8:  # 80% chance of AC agent
-                    # We pass the SAME central_agent instance
-                    # The agent is stateless regarding the hand, so this is fine
-                    # It uses info['player_data']['position'] to separate buffers
-                    self.env.add_player(central_agent)
-                    ac_player_count += 1
-                else:
-                    self.env.add_player(RandomAgent(name=f"Random_{i}"))
+            # Add players
+            self.env.add_player(central_agent)
+            ac_player_count = 1
 
-            if ac_player_count == 0:
-                continue  # Skip if no AC agents
+            if use_llm:
+                # Create agents dynamically for each episode
+                for i in range(num_players - 1):
+                    model = random.choice(models)
+                    agent = LLMAgent(name=f"LLM_{i}", model=model)
+                    self.env.add_player(agent)
+            else:
+                ac_player_count = num_players
+                for i in range(1, num_players):
+                    self.env.add_player(central_agent)
 
             self.log.info(
                 f"Episode {episode+1}/{self.num_episodes}: {num_players} players ({ac_player_count} AC)"
@@ -155,9 +209,53 @@ class GameRunner:
             # The update method now handles the dict of {seat_id: experiences}
             central_agent.update(all_experiences)
 
+            # Record performance
+            # ROI = (Final Stack - Initial Stack) / Initial Stack
+            # central_agent is at index 0
+            final_stack = self.env.players[0].stack
+            initial_stack = random_stacks[0]
+            roi = (final_stack - initial_stack) / initial_stack
+
+            # with open("training_performance.csv", "a") as f:
+            #     f.write(f"{episode+1},{roi}\n")
+
             # Save periodically
-            if (episode + 1) % 10000 == 0:
-                central_agent.save(f"models/ac_agent_{episode+1}.pt")
+            if (episode + 1) % 5000 == 0 or (episode + 1) == 1:
+                model_path = f"models/ac_agent_{episode+1}.pt"
+                central_agent.save(model_path)
+
+                # Evaluation 1: vs Random (Every saved model)
+                # print(f"\nRunning Evaluation vs Random for {model_path}...")
+                import subprocess
+
+                cmd_random = [
+                    "python",
+                    "main.py",
+                    "play",
+                    "game_evaluator",
+                    f"--model_path={model_path}",
+                    "--episodes=10000",
+                    "--opponent_probs=1,0,0",
+                    "--log_results=evaluation_vs_random.csv",
+                    "--log=eval_random",
+                ]
+                subprocess.run(cmd_random)
+
+            # Evaluation 2: vs Mini LLM (Every 10th saved model, i.e., every 10k episodes)
+            if (episode + 1) % 50000 == 0:
+                print(f"\nRunning Evaluation vs Mini LLM for {model_path}...")
+                cmd_mini = [
+                    "python",
+                    "main.py",
+                    "play",
+                    "game_evaluator",
+                    f"--model_path={model_path}",
+                    "--episodes=100",
+                    "--opponent_probs=0,1,0",
+                    "--log_results=evaluation_vs_mini.csv",
+                    "--log=eval_mini",
+                ]
+                subprocess.run(cmd_mini)
 
     def key_press_agents(self):
         """Create an environment with key press agents"""
@@ -218,3 +316,5 @@ class GameRunner:
 
 if __name__ == "__main__":
     command_line_parser()
+    # python main.py play ac_train --episodes=500000
+    # python main.py play game_evaluator --model_path=models/ac_agent_500000.pt --episodes=1000 --opponent_probs=1,0,0 --log_results=evaluation_vs_random.csv --log=eval_random

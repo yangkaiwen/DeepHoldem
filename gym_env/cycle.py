@@ -156,7 +156,7 @@ class PlayerCycle:
             if (
                 self.can_still_make_moves_in_this_hand[i]  # Can still act
                 and not self.out_of_cash_but_contributed[i]  # Not all-in
-                and self.player_contributions[i] < max_contribution
+                and max_contribution - self.player_contributions[i] > 1e-5
             ):  # Hasn't matched bet
                 all_contributed_equally = False
                 break
@@ -170,6 +170,8 @@ class PlayerCycle:
         )
         if all_all_in:
             log.debug("All non-folded players are all-in")
+            stacks = {i: self.lst[i].stack for i in non_folded_indices}
+            log.debug(f"Non-folded stacks: {stacks}")
             return True
 
         # If we get here, all players have contributed equally
@@ -267,6 +269,7 @@ class PlayerCycle:
         """Mark a raise for the current player."""
         self.last_aggressor_idx = self.idx
         self.preflop_no_raise = False
+        self.checkers = 0
         if contribution > 0:
             self.player_contributions[self.idx] += contribution
             self.current_street_contributions[self.idx] += contribution

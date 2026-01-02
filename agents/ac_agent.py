@@ -7,8 +7,10 @@ from typing import Dict, List, Tuple, Optional
 import torch.optim as optim
 from collections import deque, defaultdict
 import os
+import csv
+import time
 
-from agents.network import DynamicPokerNetwork
+from agents.network import ActorNetwork, CriticNetwork
 from gym_env.enums import Action
 
 
@@ -26,13 +28,13 @@ class PokerACAgent:
 
         self.name = name
 
-        # Create network - matching environment's max of 10 players
-        self.network = DynamicPokerNetwork(max_players=10, max_action_seq=100).to(
-            self.device
-        )
+        # Create networks - matching environment's max of 10 players
+        self.actor = ActorNetwork(max_players=10, max_action_seq=100).to(self.device)
+        self.critic = CriticNetwork(max_players=10, max_action_seq=100).to(self.device)
 
-        # Optimizer
-        self.optimizer = optim.Adam(self.network.parameters(), lr=3e-4)
+        # Optimizers
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=1e-4)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=1e-3)
 
         # Training buffers - keyed by seat_id
         self.episode_buffer = defaultdict(list)
@@ -40,14 +42,12 @@ class PokerACAgent:
         self.training_buffer = defaultdict(list)
         self.min_batch_size = 2000  # Minimum steps before performing an update
 
-        self.replay_buffer = deque(maxlen=10000)
-
         # Hyperparameters
-        self.gamma = 0.99
+        self.gamma = 1
         self.gae_lambda = 0.95
         self.clip_epsilon = 0.2
         self.entropy_coef = 0.01
-        self.value_coef = 0.5
+        self.value_coef = 1.0
         self.max_grad_norm = 0.5
 
         # Statistics
@@ -55,10 +55,22 @@ class PokerACAgent:
         self.episodes_played = 0
         self.total_reward = 0
 
-        print(f"PokerACAgent '{name}' initialized on {self.device}")
-        print(
-            f"Network parameters: {sum(p.numel() for p in self.network.parameters()):,}"
-        )
+        # Logging
+        self.log_dir = "log"
+        os.makedirs(self.log_dir, exist_ok=True)
+        self.log_file = os.path.join(self.log_dir, "training_losses.csv")
+
+        # Initialize log file with headers if it doesn't exist
+        if not os.path.exists(self.log_file):
+            with open(self.log_file, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["step", "policy_loss", "value_loss", "entropy_loss"])
+
+        # print(f"PokerACAgent '{name}' initialized on {self.device}")
+        # print(f"Logging losses to {self.log_file}")
+        # print(
+        #     f"Network parameters: {sum(p.numel() for p in self.network.parameters()):,}"
+        # )
 
     def action(self, action_space, observation, info):
         """
@@ -83,7 +95,8 @@ class PokerACAgent:
 
         # Forward pass through network
         with torch.no_grad():
-            policy_logits, value = self.network(obs_dict)
+            policy_logits = self.actor(obs_dict)
+            value = self.critic(obs_dict)
 
             # Create mask for illegal actions
             action_mask = torch.full((13,), float("-inf"), device=self.device)
@@ -148,7 +161,7 @@ class PokerACAgent:
 
             global_features (7):              # 7 values
               - num_players
-              - community_pot / (big_blind * 100)
+              - community_pot / (fraction of initial stacks)
               - stage (0-4)
               - num_active_players
               - num_callers
@@ -159,15 +172,15 @@ class PokerACAgent:
               for each player:
                 - is_active (0/1)
                 - did_raise (0/1)
-                - money_invested / (big_blind * 100)
-                - current_stack / (big_blind * 100)
+                - money_invested / (fraction of initial stacks)
+                - current_stack / (fraction of initial stacks)
                 - is_current (0/1)
                 - is_bb (0/1)
 
             PARD sequence (variable length):  # 4 values per action
               - player_seat
               - action_idx
-              - reward / (big_blind * 100)
+              - reward (fraction of initial stacks)
               - done (0/1)
         ]
 
@@ -276,20 +289,33 @@ class PokerACAgent:
             if not experiences:
                 continue
 
-            # Calculate Returns (Monte Carlo)
-            R = 0
+            # Calculate Returns and Advantages (GAE)
             player_returns = []
-            player_values = []
+            player_advantages = []
 
             rewards = [exp["reward"] for exp in experiences]
+            dones = [exp["done"] for exp in experiences]
             values = [exp["value"].item() for exp in agent_buffer]
 
-            for r in reversed(rewards):
-                R = r + self.gamma * R
-                player_returns.insert(0, R)
+            # Bootstrap value for the last step (0 if done, else we'd need next_value)
+            # In poker, episodes usually end with done=True, so next_value=0 is safe.
+            next_value = 0
+            gae = 0
 
-            # Calculate advantages
-            player_advantages = [ret - val for ret, val in zip(player_returns, values)]
+            for i in reversed(range(len(rewards))):
+                # Delta = r + gamma * V_next * (1-done) - V_curr
+                mask = 1.0 - float(dones[i])
+                delta = rewards[i] + self.gamma * next_value * mask - values[i]
+
+                # GAE = delta + gamma * lambda * GAE_next * (1-done)
+                gae = delta + self.gamma * self.gae_lambda * mask * gae
+
+                # Target Return = Advantage + Value
+                # This is what the Critic should predict (V_target)
+                player_returns.insert(0, gae + values[i])
+                player_advantages.insert(0, gae)
+
+                next_value = values[i]
 
             # Collect data for batch
             for i in range(len(experiences)):
@@ -301,6 +327,7 @@ class PokerACAgent:
                     self.training_buffer["states_" + key].append(state[key])
 
                 self.training_buffer["actions"].append(agent_exp["action"])
+                self.training_buffer["log_probs"].append(agent_exp["log_prob"].item())
                 self.training_buffer["returns"].append(player_returns[i])
                 self.training_buffer["advantages"].append(player_advantages[i])
 
@@ -309,8 +336,18 @@ class PokerACAgent:
 
         # Check if we have enough data for an update
         current_batch_size = len(self.training_buffer["actions"])
+
+        # Print buffer fill percentage
+        fill_pct = (current_batch_size / self.min_batch_size) * 100
+        print(
+            f"Buffer: {current_batch_size}/{self.min_batch_size} ({fill_pct:.1f}%)",
+            end="\r",
+        )
+
         if current_batch_size < self.min_batch_size:
             return
+
+        print()  # Move to next line for update message
 
         # --- Perform Update ---
 
@@ -331,6 +368,9 @@ class PokerACAgent:
         actions = torch.tensor(self.training_buffer["actions"], dtype=torch.long).to(
             self.device
         )
+        old_log_probs = torch.tensor(
+            self.training_buffer["log_probs"], dtype=torch.float32
+        ).to(self.device)
         returns = torch.tensor(self.training_buffer["returns"], dtype=torch.float32).to(
             self.device
         )
@@ -342,10 +382,11 @@ class PokerACAgent:
         if advantages.std() > 0:
             advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        # PPO-style update
+        # PPO update
         for _ in range(3):  # Multiple epochs
             # Forward pass
-            policy_logits, values = self.network(states)
+            policy_logits = self.actor(states)
+            values = self.critic(states)
             values = values.squeeze()
 
             # Get action probabilities
@@ -356,26 +397,61 @@ class PokerACAgent:
             new_log_probs = action_dist.log_prob(actions)
             entropy = action_dist.entropy().mean()
 
-            # Policy loss
-            policy_loss = -(new_log_probs * advantages).mean()
+            # PPO Ratio
+            ratio = torch.exp(new_log_probs - old_log_probs)
+
+            # Surrogate Loss
+            surr1 = ratio * advantages
+            surr2 = (
+                torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon)
+                * advantages
+            )
+            policy_loss = -torch.min(surr1, surr2).mean()
 
             # Value loss
             value_loss = F.mse_loss(values, returns)
 
-            # Total loss
-            loss = (
-                policy_loss + self.value_coef * value_loss - self.entropy_coef * entropy
-            )
+            # Loss components
+            p_loss = policy_loss
+            v_loss = self.value_coef * value_loss
+            e_loss = -self.entropy_coef * entropy
 
-            # Optimize
-            self.optimizer.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(
-                self.network.parameters(), self.max_grad_norm
-            )
-            self.optimizer.step()
+            # Optimize Actor
+            actor_loss = p_loss + e_loss
+            self.actor_optimizer.zero_grad()
+            actor_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
+            self.actor_optimizer.step()
+
+            # Optimize Critic
+            self.critic_optimizer.zero_grad()
+            v_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
+            self.critic_optimizer.step()
 
             self.training_step += 1
+
+        print(
+            f"  [UPDATE] Network updated at step {self.training_step} (Batch size: {current_batch_size})"
+        )
+        print(
+            f"    Losses -> Policy: {p_loss.item():.4f} | Value: {v_loss.item():.4f} | Entropy: {e_loss.item():.4f}"
+        )
+
+        # Log to file
+        try:
+            with open(self.log_file, "a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    [
+                        self.training_step,
+                        p_loss.item(),
+                        v_loss.item(),
+                        e_loss.item(),
+                    ]
+                )
+        except Exception as e:
+            print(f"Error writing to log file: {e}")
 
         # Clear training buffer after update
         self.training_buffer.clear()
@@ -384,15 +460,17 @@ class PokerACAgent:
         """Save model checkpoint"""
         torch.save(
             {
-                "network_state_dict": self.network.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
+                "actor_state_dict": self.actor.state_dict(),
+                "critic_state_dict": self.critic.state_dict(),
+                "actor_optimizer_state_dict": self.actor_optimizer.state_dict(),
+                "critic_optimizer_state_dict": self.critic_optimizer.state_dict(),
                 "training_step": self.training_step,
                 "episodes_played": self.episodes_played,
                 "total_reward": self.total_reward,
             },
             path,
         )
-        print(f"Model saved to {path}")
+        # print(f"Model saved to {path}")
 
     def load(self, path: str):
         """Load model checkpoint"""
@@ -401,17 +479,58 @@ class PokerACAgent:
             return
 
         checkpoint = torch.load(path, map_location=self.device)
-        self.network.load_state_dict(checkpoint["network_state_dict"])
-        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+        if "network_state_dict" in checkpoint:
+            print("Loading legacy checkpoint (shared network)...")
+            net_state = checkpoint["network_state_dict"]
+
+            # Map for Actor
+            actor_state = {}
+            for k, v in net_state.items():
+                if k.startswith("actor"):
+                    actor_state[k] = v
+                elif k.startswith("critic"):
+                    pass
+                else:
+                    actor_state["feature_extractor." + k] = v
+
+            # Map for Critic
+            critic_state = {}
+            for k, v in net_state.items():
+                if k.startswith("critic"):
+                    critic_state[k] = v
+                elif k.startswith("actor"):
+                    pass
+                else:
+                    critic_state["feature_extractor." + k] = v
+
+            try:
+                self.actor.load_state_dict(actor_state)
+                self.critic.load_state_dict(critic_state)
+                print("Legacy checkpoint loaded successfully.")
+            except Exception as e:
+                print(f"Failed to load legacy checkpoint: {e}")
+        else:
+            self.actor.load_state_dict(checkpoint["actor_state_dict"])
+            self.critic.load_state_dict(checkpoint["critic_state_dict"])
+            self.actor_optimizer.load_state_dict(
+                checkpoint["actor_optimizer_state_dict"]
+            )
+            self.critic_optimizer.load_state_dict(
+                checkpoint["critic_optimizer_state_dict"]
+            )
+
         self.training_step = checkpoint.get("training_step", 0)
         self.episodes_played = checkpoint.get("episodes_played", 0)
         self.total_reward = checkpoint.get("total_reward", 0)
-        print(f"Model loaded from {path}")
+        # print(f"Model loaded from {path}")
 
     def train_mode(self):
         """Set to training mode"""
-        self.network.train()
+        self.actor.train()
+        self.critic.train()
 
     def eval_mode(self):
         """Set to evaluation mode"""
-        self.network.eval()
+        self.actor.eval()
+        self.critic.eval()
